@@ -2,6 +2,8 @@ from pathlib import Path
 from environ import Env
 import os
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 env = Env(
     DEBUG=(bool, False),
     SECRET_KEY=(str, 'secret'),
@@ -15,13 +17,10 @@ env = Env(
     OPENAI_MODEL=(str, 'gpt-4o'),
     ALIBABA_LLM_MODEL=(str, 'qwen-max'),
     DEFAULT_LLM_PROVIDER=(str, 'openai'),
+    DATABASE_URL=(str, 'sqlite:////' + str(BASE_DIR / 'db.sqlite3')),
 )
 
 env.read_env()
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 SECRET_KEY = env('SECRET_KEY')
 
@@ -73,10 +72,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'conf.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': env.db('DATABASE_URL'),
 }
 
 AUTH_PASSWORD_VALIDATORS = [

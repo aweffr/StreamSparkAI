@@ -53,3 +53,17 @@
 - [ ] LLM内容摘要集成
 - [ ] 批量处理队列系统
 - [ ] 用户界面优化
+
+## Docker 构建说明
+
+### 构建 Docker 镜像
+
+从项目根目录构建 Docker 镜像，请执行以下命令：
+
+```bash
+# 基本构建命令
+docker build -f docker/Dockerfile --progress=plain -t streamsparkweb:latest .
+
+# 使用清华镜像源构建
+docker build -f docker/Dockerfile --progress=plain --build-arg USE_TSINGHUA_MIRROR=true -t streamsparkweb:latest .
+```

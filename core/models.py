@@ -20,6 +20,25 @@ def get_uuid():
     """
     return uuid7()
 
+def get_world_background():
+    """
+    读取世界背景信息文件
+    
+    Returns:
+        str: 背景信息内容，如果文件不存在则返回空字符串
+    """
+    try:
+        background_path = Path(__file__).parent / "utils" / "assets" / "world-background.txt"
+        if background_path.exists():
+            with open(background_path, 'r', encoding='utf-8') as file:
+                return file.read().strip()
+        else:
+            logger.warning(f"世界背景信息文件不存在: {background_path}")
+        return ""
+    except Exception as e:
+        logger.exception(f"读取世界背景信息文件时出错: {e}")
+        return ""
+
 class AudioMedia(models.Model):
     """
     Model for storing and processing audio/video files.
@@ -250,6 +269,11 @@ class AudioMedia(models.Model):
             context_info = f"标题: {self.title}"
             if self.description:
                 context_info += f"\n描述: {self.description}"
+                
+            # 添加世界背景信息
+            world_background = get_world_background()
+            if world_background:
+                context_info += f"\n\n【背景知识参考 - 仅用于理解，不要与正文混淆】\n{world_background}\n\n【重要提示：上面的背景信息仅供你理解世界背景和事实，与待总结的正文无关，请不要在总结中引用或混淆这些背景信息。只总结传入的转录文本内容。】"
             
             # 获取LLM客户端
             client = LLMClient.get_client(provider=llm_provider)

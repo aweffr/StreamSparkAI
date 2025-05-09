@@ -4,14 +4,21 @@ from django.core.validators import FileExtensionValidator
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 import uuid
+from uuid_extensions import uuid7  # Correct import for uuid7
 import os
 from pathlib import Path
 import logging
 from django.utils import timezone
 from django.core.files.base import ContentFile
-from .utils.llm_client import LLMClient, SummaryType
+from .utils.llm_client import LLMClient, SummaryType, is_valid_model, SUPPORTED_MODELS
 
 logger = logging.getLogger(__name__)
+
+def get_uuid():
+    """
+    Generate a UUID for the model instance.
+    """
+    return uuid7()
 
 class AudioMedia(models.Model):
     """
@@ -24,7 +31,7 @@ class AudioMedia(models.Model):
         ('failed', _('Failed')),
     )
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=get_uuid, editable=False)  # Using uuid7 function directly
     title = models.CharField(_('Title'), max_length=191)
     description = models.TextField(_('Description'), blank=True)
     
@@ -63,10 +70,13 @@ class AudioMedia(models.Model):
     raw_transcription = models.JSONField(_('Raw Transcription'), blank=True, null=True)
     formatted_transcription = models.TextField(_('Formatted Transcription'), blank=True)
     
-    # Summary fields
+    # Summary fields - keeping these for backward compatibility
     summary = models.TextField(_('Summary'), blank=True)
     summary_type = models.CharField(_('Summary Type'), max_length=20, default='GENERAL')
     summary_date = models.DateTimeField(_('Summary Date'), blank=True, null=True)
+    
+    # Model selection field for the latest summary generation
+    selected_model = models.CharField(_('Selected LLM Model'), max_length=50, blank=True)
 
     class Meta:
         verbose_name = _('Audio Media')
@@ -209,20 +219,28 @@ class AudioMedia(models.Model):
         
         return True, None
 
-    def generate_summary(self, summary_type_str='GENERAL', llm_provider='openai'):
+    def generate_summary(self, summary_type_str='GENERAL', llm_provider=None, model=None):
         """
         使用LLM为转录文本生成总结
         
         Args:
             summary_type_str (str): 总结类型 ('GENERAL', 'KEY_POINTS', 等)
             llm_provider (str): LLM提供商 ('openai' 或 'alibaba')
+            model (str): 模型名称，如果为None则使用默认模型
             
         Returns:
             tuple: (success, error_message)
         """
         # 检查是否有转录文本可用
         if not self.formatted_transcription:
+            logger.warning(f"ID: {self.id}, 标题: {self.title} - 无可用转录文本, 无法生成总结")
             return False, "没有可用的转录文本来生成总结"
+        
+        # 如果未指定提供商，使用默认提供商
+        if not llm_provider:
+            llm_provider = getattr(settings, 'DEFAULT_LLM_PROVIDER', 'openai')
+        
+        logger.info(f"ID: {self.id}, 标题: {self.title} - 开始生成总结, 类型: {summary_type_str}, 提供商: {llm_provider}, 模型: {model or '默认'}")
         
         try:
             # 获取总结类型枚举
@@ -236,24 +254,54 @@ class AudioMedia(models.Model):
             # 获取LLM客户端
             client = LLMClient.get_client(provider=llm_provider)
             
-            # 调用LLM API生成总结，传递上下文信息
-            result = client.summarize(self.formatted_transcription, summary_type, context_info=context_info)
+            # 验证模型是否有效，如果指定了模型
+            if model and not is_valid_model(llm_provider, model):
+                logger.warning(f"指定的模型 {model} 对于提供商 {llm_provider} 无效，将使用默认模型")
+                model = None
+            
+            # 调用LLM API生成总结，传递上下文信息和模型
+            logger.info(f"ID: {self.id}, 标题: {self.title} - 调用LLM API, 提供商: {llm_provider}, 模型: {model or '默认'}")
+            result = client.summarize(
+                self.formatted_transcription, 
+                summary_type, 
+                context_info=context_info,
+                model=model
+            )
             
             if 'summary' in result and result['summary']:
                 # 更新模型字段
                 self.summary = result['summary']
                 self.summary_type = summary_type_str
                 self.summary_date = timezone.now()
+                self.selected_model = result.get('model_used', '')
                 self.save()
                 
-                logger.info(f"成功为 {self.title} 生成了内容总结")
+                # 创建总结快照
+                snapshot = SummarySnapshot.objects.create(
+                    audio_media=self,
+                    summary_type=summary_type_str,
+                    summary=result['summary'],
+                    llm_provider=llm_provider,
+                    llm_model=result.get('model_used', ''),
+                    raw_response=result.get('raw_response')
+                )
+                
+                logger.info(f"ID: {self.id}, 标题: {self.title} - 成功生成内容总结，使用模型: {result.get('model_used', '')}, 快照ID: {snapshot.id}")
                 return True, None
             else:
-                return False, "LLM未返回有效的总结内容"
+                error_msg = "LLM未返回有效的总结内容"
+                if 'raw_response' in result and result['raw_response']:
+                    raw_response_str = str(result['raw_response'])
+                    logger.error(f"ID: {self.id}, 标题: {self.title} - LLM响应无效, 原始响应: {raw_response_str[:500]}...")
+                else:
+                    logger.error(f"ID: {self.id}, 标题: {self.title} - LLM响应无效, 无原始响应")
+                
+                return False, error_msg
                 
         except Exception as e:
-            logger.exception(f"为 {self.title} 生成总结时出错: {str(e)}")
-            return False, str(e)
+            error_msg = f"为 {self.title} 生成总结时出错: {str(e)}"
+            logger.exception(f"ID: {self.id}, 标题: {self.title} - 生成总结失败: {str(e)}")
+            return False, error_msg
 
     @property
     def raw_transcription_admin_display(self):
@@ -267,3 +315,32 @@ class AudioMedia(models.Model):
             else:
                 return str_display
         return None
+
+
+class SummarySnapshot(models.Model):
+    """
+    用于存储音频文件的总结快照，以便存档和比较不同的总结
+    """
+    id = models.UUIDField(primary_key=True, default=get_uuid, editable=False)  # Using uuid7 function directly
+    audio_media = models.ForeignKey(AudioMedia, on_delete=models.CASCADE, related_name='summary_snapshots')
+    
+    summary_type = models.CharField(_('Summary Type'), max_length=20)
+    summary = models.TextField(_('Summary Content'))
+    
+    # LLM 信息
+    llm_provider = models.CharField(_('LLM Provider'), max_length=20)
+    llm_model = models.CharField(_('LLM Model'), max_length=50)
+    
+    # 原始响应
+    raw_response = models.JSONField(_('Raw LLM Response'), null=True, blank=True)
+    
+    # 时间戳
+    created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
+    
+    class Meta:
+        verbose_name = _('Summary Snapshot')
+        verbose_name_plural = _('Summary Snapshots')
+        ordering = ['-created_at']        
+    
+    def __str__(self):
+        return f"{self.summary_type} summary for {self.audio_media.title} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"

@@ -116,3 +116,36 @@ msgstr "生成会议纪要"
 
 msgid "Generate detailed summary"
 msgstr "生成详细摘要"
+
+# LLM related translations
+msgid "LLM Model"
+msgstr "LLM 模型"
+
+msgid "Available Models"
+msgstr "可用模型"
+
+msgid "Selected LLM Model"
+msgstr "已选 LLM 模型"
+
+msgid "LLM Provider"
+msgstr "LLM 提供商"
+
+msgid "Raw LLM Response"
+msgstr "原始 LLM 响应"
+
+# Summary snapshot related translations
+msgid "Summary Content"
+msgstr "摘要内容"
+
+msgid "Created At"
+msgstr "创建时间"
+
+msgid "Summary Snapshot"
+msgstr "摘要快照"
+
+msgid "Summary Snapshots"
+msgstr "摘要快照"
+
+# Admin interface sections
+msgid "Technical Details"
+msgstr "技术细节"

@@ -67,6 +67,8 @@ def get_prompt_template(summary_type):
             
             {context_info}
             
+            注意：转录文本存在机器转录误差，请尽模型最大努力去纠错。
+            
             转录文本:
             {text}
             """),
@@ -81,6 +83,8 @@ def get_prompt_template(summary_type):
             
             {context_info}
             
+            注意：转录文本存在机器转录误差，请尽模型最大努力去纠错。
+            
             转录文本:
             {text}
             """),
@@ -89,6 +93,8 @@ def get_prompt_template(summary_type):
             请从以下转录文本中提取5-10个关键点，以要点形式列出，并对每个关键点做简短解释。
             
             {context_info}
+            
+            注意：转录文本存在机器转录误差，请尽模型最大努力去纠错。
             
             转录文本:
             {text}
@@ -104,6 +110,8 @@ def get_prompt_template(summary_type):
             
             {context_info}
             
+            注意：转录文本存在机器转录误差，请尽模型最大努力去纠错。
+            
             转录文本:
             {text}
             """),
@@ -116,6 +124,8 @@ def get_prompt_template(summary_type):
             4. 结论
             
             {context_info}
+            
+            注意：转录文本存在机器转录误差，请尽模型最大努力去纠错。
             
             转录文本:
             {text}
@@ -132,12 +142,57 @@ def get_prompt_template(summary_type):
             
             {context_info}
             
+            注意：转录文本存在机器转录误差，请尽模型最大努力去纠错。
+            
             转录文本:
             {text}
             """)
     }
     
     return templates.get(summary_type, templates[SummaryType.GENERAL])
+
+# 支持的LLM模型列表
+SUPPORTED_MODELS = {
+    "openai": [
+        "gpt-4.1-2025-04-14",
+        "gpt-4.1-mini-2025-04-14", 
+        "gpt-4o-2024-11-20",
+        "gpt-4o", 
+        "claude-3-7-sonnet-thinking",
+        "claude-3-7-sonnet-latest", 
+        "gemini-2.5-pro-exp-03-25", 
+        "gemini-2.5-pro-preview-05-06",
+        "gemini-2.5-flash-preview-04-17"
+    ],
+    "alibaba": [
+        "qwen-max-2025-01-25",
+        "qwen-plus-2025-04-28", 
+        "qwen-plus-2025-01-25",
+        "qwen-turbo-2025-04-28", 
+        "qwen3-235b-a22b",
+        "qwen-max"
+    ]
+}
+
+def is_valid_model(provider, model_name):
+    """
+    验证模型是否为指定提供商的受支持模型
+    
+    Args:
+        provider (str): LLM提供商名称 ('openai' 或 'alibaba')
+        model_name (str): 模型名称
+        
+    Returns:
+        bool: 如果模型受支持则返回True，否则返回False
+    """
+    if not provider or not model_name:
+        return False
+        
+    provider = provider.lower()
+    if provider not in SUPPORTED_MODELS:
+        return False
+        
+    return model_name in SUPPORTED_MODELS[provider]
 
 class LLMClient:
     """与LLM API交互的客户端基类"""
@@ -152,7 +207,7 @@ class LLMClient:
         else:
             raise ValueError(f"不支持的LLM提供商: {provider}")
 
-    def summarize(self, text, summary_type=SummaryType.GENERAL, context_info=""):
+    def summarize(self, text, summary_type=SummaryType.GENERAL, context_info="", model=None):
         """使用LLM总结文本内容"""
         raise NotImplementedError("子类必须实现此方法")
     
@@ -204,7 +259,7 @@ class OpenAIClient(LLMClient):
             raise ValueError("设置中未找到OpenAI API密钥")
         
         self.api_base = getattr(settings, 'OPENAI_API_BASE', "https://api.openai.com/v1")
-        self.model = getattr(settings, 'OPENAI_MODEL', "gpt-4o")
+        self.default_model = getattr(settings, 'OPENAI_MODEL', "gpt-4o")
     
     @classmethod
     def _send_request(cls, api_key, api_base, model, messages, temperature=0.3):
@@ -254,7 +309,7 @@ class OpenAIClient(LLMClient):
         response.raise_for_status()
         return response.json()
     
-    def summarize(self, text, summary_type=SummaryType.GENERAL, context_info=""):
+    def summarize(self, text, summary_type=SummaryType.GENERAL, context_info="", model=None):
         """使用OpenAI API总结文本内容"""
         prompt = get_prompt_template(summary_type).format(text=text, context_info=context_info)
         
@@ -262,13 +317,16 @@ class OpenAIClient(LLMClient):
             {"role": "system", "content": "你是一个专业的内容总结助手。"},
             {"role": "user", "content": prompt}
         ]
+
+        # 使用指定的模型或默认模型        
+        model_to_use = model if model and is_valid_model("openai", model) else self.default_model
         
         try:
-            logger.info("正在调用OpenAI API进行内容总结")
+            logger.info(f"正在调用OpenAI API进行内容总结，使用模型: {model_to_use}")
             result = self._send_request(
                 self.api_key, 
                 self.api_base, 
-                self.model, 
+                model_to_use, 
                 messages
             )
             
@@ -277,14 +335,16 @@ class OpenAIClient(LLMClient):
             
             return {
                 "summary": summary,
-                "raw_response": result
+                "raw_response": result,
+                "model_used": model_to_use
             }
             
         except Exception as e:
             logger.exception(f"调用OpenAI API时出错: {e}")
             return {
                 "summary": f"内容总结失败: {str(e)}",
-                "raw_response": None
+                "raw_response": None,
+                "model_used": model_to_use
             }
     
     def _send_health_check_request(self, prompt):
@@ -298,7 +358,7 @@ class OpenAIClient(LLMClient):
             result = self._send_request(
                 self.api_key, 
                 self.api_base, 
-                self.model, 
+                self.default_model, 
                 messages
             )
             
@@ -316,7 +376,7 @@ class AlibabaClient(LLMClient):
         if not self.api_key:
             raise ValueError("设置中未找到阿里巴巴DashScope API密钥")
         
-        self.model = getattr(settings, 'ALIBABA_LLM_MODEL', "qwen-max")
+        self.default_model = getattr(settings, 'ALIBABA_LLM_MODEL', "qwen-max")
     
     @classmethod
     def _send_request(cls, api_key, model, messages, temperature=0.3):
@@ -369,7 +429,7 @@ class AlibabaClient(LLMClient):
         response.raise_for_status()
         return response.json()
         
-    def summarize(self, text, summary_type=SummaryType.GENERAL, context_info=""):
+    def summarize(self, text, summary_type=SummaryType.GENERAL, context_info="", model=None):
         """使用阿里巴巴达摩院API总结文本内容"""
         prompt = get_prompt_template(summary_type).format(text=text, context_info=context_info)
         
@@ -378,27 +438,43 @@ class AlibabaClient(LLMClient):
             {"role": "user", "content": prompt}
         ]
         
+        # 使用指定的模型或默认模型
+        model_to_use = model if model and is_valid_model("alibaba", model) else self.default_model
+        
         try:
-            logger.info("正在调用阿里巴巴API进行内容总结")
+            logger.info(f"正在调用阿里巴巴API进行内容总结，使用模型: {model_to_use}")
             result = self._send_request(
                 self.api_key,
-                self.model,
+                model_to_use,
                 messages
             )
             
-            summary = result["output"]["text"]
+            # 尝试获取不同格式的响应
+            try:
+                summary = result["output"]["text"]  # 旧格式
+            except KeyError:
+                try:
+                    # 新格式，类似OpenAI的响应结构
+                    summary = result["output"]["choices"][0]["message"]["content"]
+                except (KeyError, IndexError) as e:
+                    logger.error(f"无法从响应中提取内容: {str(e)}")
+                    logger.debug(f"响应结构: {json.dumps(result, ensure_ascii=False)}")
+                    raise ValueError(f"无法解析API响应格式: {str(e)}")
+            
             logger.info("成功生成内容总结")
             
             return {
                 "summary": summary,
-                "raw_response": result
+                "raw_response": result,
+                "model_used": model_to_use
             }
             
         except Exception as e:
             logger.exception(f"调用阿里巴巴API时出错: {e}")
             return {
                 "summary": f"内容总结失败: {str(e)}",
-                "raw_response": None
+                "raw_response": None,
+                "model_used": model_to_use
             }
             
     def _send_health_check_request(self, prompt):
@@ -411,11 +487,20 @@ class AlibabaClient(LLMClient):
             
             result = self._send_request(
                 self.api_key,
-                self.model,
+                self.default_model,
                 messages
             )
             
-            return result["output"]["text"]
+            # 尝试获取不同格式的响应
+            try:
+                return result["output"]["text"]  # 旧格式
+            except KeyError:
+                try:
+                    # 新格式，类似OpenAI的响应结构
+                    return result["output"]["choices"][0]["message"]["content"]
+                except (KeyError, IndexError):
+                    logger.error("无法从健康检查响应中提取内容")
+                    return None
         except Exception as e:
             logger.exception(f"健康检查请求失败: {e}")
             return None

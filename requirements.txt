@@ -8,3 +8,4 @@ djangorestframework>=3.16.0,<3.17.0
 djangorestframework-simplejwt>=5.2.0,<5.3.0
 python-dateutil>=2.8.2,<3.0.0
 requests>=2.32.3,<3.0.0
+uuid7>=0.1.0

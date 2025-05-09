@@ -10,6 +10,11 @@ env = Env(
     AWS_ACCESS_KEY_ID=(str, 'access_key'),
     AWS_SECRET_ACCESS_KEY=(str, 'secret_key'),
     ALIBABA_DASHSCOPE_API_KEY=(str, 'api_key'),
+    OPENAI_API_KEY=(str, ''),
+    OPENAI_API_BASE=(str, 'https://api.openai.com/v1'),
+    OPENAI_MODEL=(str, 'gpt-4o'),
+    ALIBABA_LLM_MODEL=(str, 'qwen-max'),
+    DEFAULT_LLM_PROVIDER=(str, 'openai'),
 )
 
 env.read_env()
@@ -130,7 +135,16 @@ STORAGES = {
     },
 }
 
-ALIBABA_DASHSCOPE_API_KEY=env('ALIBABA_DASHSCOPE_API_KEY')
+ALIBABA_DASHSCOPE_API_KEY = env('ALIBABA_DASHSCOPE_API_KEY')
+
+# LLM settings
+OPENAI_API_KEY = env('OPENAI_API_KEY')
+OPENAI_API_BASE = env('OPENAI_API_BASE')
+OPENAI_MODEL = env('OPENAI_MODEL')
+
+ALIBABA_LLM_MODEL = env('ALIBABA_LLM_MODEL')
+
+DEFAULT_LLM_PROVIDER = env('DEFAULT_LLM_PROVIDER')
 
 # Logging Configuration
 

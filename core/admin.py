@@ -20,11 +20,14 @@ logger = logging.getLogger(__name__)
 
 @admin.register(AudioMedia)
 class AudioMediaAdmin(admin.ModelAdmin):
-    list_display = ('title', 'upload_date', 'processing_status', 'transcription_status', 'has_original_file', 'has_processed_file')
-    list_filter = ('processing_status', 'transcription_status', 'upload_date')
+    list_display = ('title', 'upload_date', 'processing_status', 'transcription_status', 
+                   'has_original_file', 'has_processed_file', 'has_summary')
+    list_filter = ('processing_status', 'transcription_status', 'upload_date', 'summary_type')
     search_fields = ('title', 'description')
-    readonly_fields = ('upload_date', 'processing_date', 'transcription_start_date', 'transcription_end_date',
-                      'processing_status', 'transcription_status', 'raw_transcription_admin_display', 'formatted_transcription')
+    readonly_fields = ('upload_date', 'processing_date', 'transcription_start_date', 
+                      'transcription_end_date', 'processing_status', 'transcription_status', 
+                      'raw_transcription_admin_display', 'formatted_transcription', 
+                      'summary', 'summary_date')
     fieldsets = (
         (_('Basic Information'), {
             'fields': ('title', 'description', 'upload_date')
@@ -39,8 +42,12 @@ class AudioMediaAdmin(admin.ModelAdmin):
             'fields': ('transcription_status', 'transcription_start_date', 'transcription_end_date', 
                       'formatted_transcription', 'raw_transcription_admin_display')
         }),
+        (_('Summary Information'), {
+            'fields': ('summary_type', 'summary', 'summary_date')
+        }),
     )
-    actions = ['convert_to_aac', 'transcribe_audio', 'convert_and_transcribe']
+    actions = ['convert_to_aac', 'transcribe_audio', 'convert_and_transcribe', 
+              'generate_general_summary', 'generate_detailed_summary', 'generate_key_points', 'generate_meeting_minutes']
 
     def has_original_file(self, obj):
         return bool(obj.original_file)
@@ -51,6 +58,11 @@ class AudioMediaAdmin(admin.ModelAdmin):
         return bool(obj.processed_file)
     has_processed_file.boolean = True
     has_processed_file.short_description = _('Processed File')
+
+    def has_summary(self, obj):
+        return bool(obj.summary)
+    has_summary.boolean = True
+    has_summary.short_description = _('Has Summary')
 
     def convert_to_aac(self, request, queryset):
         """
@@ -141,3 +153,51 @@ class AudioMediaAdmin(admin.ModelAdmin):
                             level=messages.WARNING)
     
     convert_and_transcribe.short_description = _("Convert and transcribe selected files")
+
+    def generate_general_summary(self, request, queryset):
+        """Generate general summary for selected audio files"""
+        self._generate_summary(request, queryset, 'GENERAL')
+    generate_general_summary.short_description = _("Generate general summary")
+    
+    def generate_detailed_summary(self, request, queryset):
+        """Generate detailed summary for selected audio files"""
+        self._generate_summary(request, queryset, 'GENERAL_DETAIL')
+    generate_detailed_summary.short_description = _("Generate detailed summary")
+    
+    def generate_key_points(self, request, queryset):
+        """Extract key points from selected audio files"""
+        self._generate_summary(request, queryset, 'KEY_POINTS')
+    generate_key_points.short_description = _("Extract key points")
+    
+    def generate_meeting_minutes(self, request, queryset):
+        """Generate meeting minutes for selected audio files"""
+        self._generate_summary(request, queryset, 'MEETING_MINUTES')
+    generate_meeting_minutes.short_description = _("Generate meeting minutes")
+    
+    def _generate_summary(self, request, queryset, summary_type):
+        """Generic summary generation method"""
+        success_count = 0
+        error_count = 0
+        
+        for audio in queryset:
+            if not audio.formatted_transcription:
+                self.message_user(request, 
+                                f"{audio.title}: No transcription available", 
+                                level=messages.WARNING)
+                error_count += 1
+                continue
+                
+            success, error = audio.generate_summary(summary_type_str=summary_type)
+            
+            if success:
+                success_count += 1
+            else:
+                self.message_user(request, 
+                                f"{audio.title}: {error}", 
+                                level=messages.ERROR)
+                error_count += 1
+        
+        if success_count > 0:
+            self.message_user(request, 
+                             f"Successfully generated summaries for {success_count} file(s)", 
+                             level=messages.SUCCESS)

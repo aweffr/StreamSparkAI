@@ -9,6 +9,7 @@ from pathlib import Path
 import logging
 from django.utils import timezone
 from django.core.files.base import ContentFile
+from .utils.llm_client import LLMClient, SummaryType
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,11 @@ class AudioMedia(models.Model):
     transcription_end_date = models.DateTimeField(_('Transcription End Date'), blank=True, null=True)
     raw_transcription = models.JSONField(_('Raw Transcription'), blank=True, null=True)
     formatted_transcription = models.TextField(_('Formatted Transcription'), blank=True)
+    
+    # Summary fields
+    summary = models.TextField(_('Summary'), blank=True)
+    summary_type = models.CharField(_('Summary Type'), max_length=20, default='GENERAL')
+    summary_date = models.DateTimeField(_('Summary Date'), blank=True, null=True)
 
     class Meta:
         verbose_name = _('Audio Media')
@@ -202,6 +208,52 @@ class AudioMedia(models.Model):
             return False, f"Transcription failed: {error_message}"
         
         return True, None
+
+    def generate_summary(self, summary_type_str='GENERAL', llm_provider='openai'):
+        """
+        使用LLM为转录文本生成总结
+        
+        Args:
+            summary_type_str (str): 总结类型 ('GENERAL', 'KEY_POINTS', 等)
+            llm_provider (str): LLM提供商 ('openai' 或 'alibaba')
+            
+        Returns:
+            tuple: (success, error_message)
+        """
+        # 检查是否有转录文本可用
+        if not self.formatted_transcription:
+            return False, "没有可用的转录文本来生成总结"
+        
+        try:
+            # 获取总结类型枚举
+            summary_type = getattr(SummaryType, summary_type_str)
+            
+            # 构建上下文信息
+            context_info = f"标题: {self.title}"
+            if self.description:
+                context_info += f"\n描述: {self.description}"
+            
+            # 获取LLM客户端
+            client = LLMClient.get_client(provider=llm_provider)
+            
+            # 调用LLM API生成总结，传递上下文信息
+            result = client.summarize(self.formatted_transcription, summary_type, context_info=context_info)
+            
+            if 'summary' in result and result['summary']:
+                # 更新模型字段
+                self.summary = result['summary']
+                self.summary_type = summary_type_str
+                self.summary_date = timezone.now()
+                self.save()
+                
+                logger.info(f"成功为 {self.title} 生成了内容总结")
+                return True, None
+            else:
+                return False, "LLM未返回有效的总结内容"
+                
+        except Exception as e:
+            logger.exception(f"为 {self.title} 生成总结时出错: {str(e)}")
+            return False, str(e)
 
     @property
     def raw_transcription_admin_display(self):

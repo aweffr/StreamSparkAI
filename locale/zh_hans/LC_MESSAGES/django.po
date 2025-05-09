@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: StreamSparkAI\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-10-15 12:00+0800\n"
-"PO-Revision-Date: 2023-10-15 12:00+0800\n"
+"POT-Creation-Date: 2025-05-09 20:00+0800\n"
+"PO-Revision-Date: 2025-05-09 20:00+0800\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: zh_hans\n"
@@ -49,6 +49,19 @@ msgstr "原始转录内容"
 msgid "Formatted Transcription"
 msgstr "格式化转录内容"
 
+# Summary related fields
+msgid "Summary"
+msgstr "摘要"
+
+msgid "Summary Type"
+msgstr "摘要类型"
+
+msgid "Summary Date"
+msgstr "摘要日期"
+
+msgid "Has Summary"
+msgstr "有摘要"
+
 # Status options
 msgid "Not Started"
 msgstr "尚未开始"
@@ -75,6 +88,9 @@ msgstr "处理信息"
 msgid "Transcription Information"
 msgstr "转录信息"
 
+msgid "Summary Information"
+msgstr "摘要信息"
+
 # Model names
 msgid "Audio Media"
 msgstr "音频媒体"
@@ -88,3 +104,15 @@ msgstr "转录所选文件"
 
 msgid "Convert and transcribe selected files"
 msgstr "转换并转录所选文件"
+
+msgid "Generate general summary"
+msgstr "生成一般摘要"
+
+msgid "Extract key points"
+msgstr "提取关键点"
+
+msgid "Generate meeting minutes"
+msgstr "生成会议纪要"
+
+msgid "Generate detailed summary"
+msgstr "生成详细摘要"

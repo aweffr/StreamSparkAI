@@ -12,37 +12,45 @@
             padding-bottom: 1.5rem;
         }
         .markdown-content {
-            padding: 1rem;
+            padding: 1.25rem;
             background-color: #f8f9fa;
             border-radius: 0.5rem;
             font-size: 1.15rem; /* Increased font size for better readability */
-            line-height: 1.6; /* Improved line height for better readability */
+            line-height: 1.7; /* Moderately increased line height for spacing */
+            letter-spacing: 0.005rem; /* Very subtle letter spacing */
         }
         .markdown-content h1, .markdown-content h2, .markdown-content h3 {
-            margin-top: 1rem;
-            margin-bottom: 0.75rem;
+            margin-top: 1.25rem;
+            margin-bottom: 0.85rem;
             font-size: 1.4em; /* Relative to the parent font size */
         }
         .markdown-content ul, .markdown-content ol {
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.9rem;
             padding-left: 1.5rem; /* Reduce default list indentation */
         }
         .markdown-content ul ul, 
         .markdown-content ol ol,
         .markdown-content ul ol,
         .markdown-content ol ul {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.6rem;
             padding-left: 1.25rem;
         }
         .markdown-content li {
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.3rem; /* Moderate spacing between list items */
         }
         .markdown-content ul li::marker,
         .markdown-content ol li::marker {
             font-size: 0.9em;
         }
         .markdown-content p {
-            margin-bottom: 1rem;
+            margin-bottom: 1.1rem; /* Moderate paragraph spacing */
+        }
+        .markdown-content blockquote {
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 4px solid #dee2e6;
+            color: #495057;
+            margin-bottom: 1.1rem;
         }
     </style>
     {% block extra_css %}{% endblock %}

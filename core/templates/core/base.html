@@ -15,16 +15,18 @@
             padding: 1rem;
             background-color: #f8f9fa;
             border-radius: 0.5rem;
+            font-size: 1.15rem; /* Increased font size for better readability */
+            line-height: 1.6; /* Improved line height for better readability */
         }
         .markdown-content h1, .markdown-content h2, .markdown-content h3 {
             margin-top: 1rem;
             margin-bottom: 0.75rem;
+            font-size: 1.4em; /* Relative to the parent font size */
         }
         .markdown-content ul, .markdown-content ol {
             margin-bottom: 0.75rem;
             padding-left: 1.5rem; /* Reduce default list indentation */
         }
-        /* Reduce indentation for nested lists */
         .markdown-content ul ul, 
         .markdown-content ol ol,
         .markdown-content ul ol,
@@ -32,14 +34,15 @@
             margin-bottom: 0.5rem;
             padding-left: 1.25rem;
         }
-        /* Adjust list item spacing */
         .markdown-content li {
             margin-bottom: 0.25rem;
         }
-        /* More compact marker styling */
         .markdown-content ul li::marker,
         .markdown-content ol li::marker {
             font-size: 0.9em;
+        }
+        .markdown-content p {
+            margin-bottom: 1rem;
         }
     </style>
     {% block extra_css %}{% endblock %}

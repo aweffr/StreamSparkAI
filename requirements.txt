@@ -11,3 +11,4 @@ requests>=2.32.3,<3.0.0
 uuid7>=0.1.0
 mysqlclient>=2.2.0,<3.0.0
 gunicorn>=21.2.0,<23.0.0
+markdown>=3.5.2,<4.0.0

@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% blocktrans with type=snapshot.summary_type title=snapshot.audio_media.title %}Summary: {{ type }} - {{ title }} - StreamSparkAI{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'core:audio_media_list' %}">{% trans "Audio Media" %}</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'core:audio_media_detail' snapshot.audio_media.id %}">{{ snapshot.audio_media.title }}</a></li>
+                <li class="breadcrumb-item active">{% blocktrans with type=snapshot.summary_type %}{{ type }} Summary{% endblocktrans %}</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>{% blocktrans with type=snapshot.summary_type %}{{ type }} Summary{% endblocktrans %}</h2>
+            <small class="text-muted">{% blocktrans with date=snapshot.created_at|date:"Y-m-d H:i" %}Generated: {{ date }}{% endblocktrans %}</small>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>{% trans "Summary Details" %}</h4>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">{% trans "Audio File" %}</dt>
+                    <dd class="col-sm-9">{{ snapshot.audio_media.title }}</dd>
+                    
+                    <dt class="col-sm-3">{% trans "Summary Type" %}</dt>
+                    <dd class="col-sm-9">{{ snapshot.summary_type }}</dd>
+                    
+                    <dt class="col-sm-3">{% trans "LLM Provider" %}</dt>
+                    <dd class="col-sm-9">{{ snapshot.llm_provider }}</dd>
+                    
+                    <dt class="col-sm-3">{% trans "LLM Model" %}</dt>
+                    <dd class="col-sm-9">{{ snapshot.llm_model }}</dd>
+                    
+                    <dt class="col-sm-3">{% trans "Created" %}</dt>
+                    <dd class="col-sm-9">{{ snapshot.created_at|date:"Y-m-d H:i:s" }}</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h4>{% trans "Summary Content" %}</h4>
+            </div>
+            <div class="card-body">
+                <div class="markdown-content">
+                    {{ summary_html|safe }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'core:audio_media_detail' snapshot.audio_media.id %}" class="btn btn-outline-primary">
+                {% trans "Back to Audio Media" %}
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

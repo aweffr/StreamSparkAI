@@ -368,3 +368,7 @@ class SummarySnapshot(models.Model):
     
     def __str__(self):
         return f"{self.summary_type} summary for {self.audio_media.title} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+    
+    def get_absolute_url(self):
+        """返回查看该总结快照的URL"""
+        return reverse('core:summary_snapshot_detail', args=[str(self.id)])

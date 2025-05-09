@@ -1,0 +1,42 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Audio Media List" %} - StreamSparkAI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h2 class="mb-4">{% trans "Audio Media Files" %}</h2>
+        
+        {% if media_list %}
+            <div class="list-group">
+                {% for media in media_list %}
+                <a href="{% url 'core:audio_media_detail' media.id %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ media.title }}</h5>
+                        <small>{{ media.upload_date|date:"Y-m-d H:i" }}</small>
+                    </div>
+                    {% if media.description %}
+                        <p class="mb-1">{{ media.description|truncatechars:150 }}</p>
+                    {% endif %}
+                    <small>
+                        {% if media.summary %}
+                            <span class="badge bg-success me-1">{% trans "Summarized" %}</span>
+                        {% endif %}
+                        <span class="badge bg-info">
+                            {% blocktrans count counter=media.summary_snapshots.count %}
+                            {{ counter }} summary version
+                            {% plural %}
+                            {{ counter }} summary versions
+                            {% endblocktrans %}
+                        </span>
+                    </small>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="alert alert-info">{% trans "No processed audio files found." %}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

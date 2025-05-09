@@ -149,3 +149,70 @@ msgstr "摘要快照"
 # Admin interface sections
 msgid "Technical Details"
 msgstr "技术细节"
+
+# UI elements
+msgid "All rights reserved."
+msgstr "保留所有权利。"
+
+msgid "Audio Media List"
+msgstr "音频媒体列表"
+
+msgid "Audio Media Files"
+msgstr "音频媒体文件"
+
+msgid "Summarized"
+msgstr "已摘要"
+
+msgid "No processed audio files found."
+msgstr "未找到已处理的音频文件。"
+
+msgid "Media Details"
+msgstr "媒体详情"
+
+msgid "Audio Player"
+msgstr "音频播放器"
+
+msgid "Your browser does not support the audio element."
+msgstr "您的浏览器不支持音频元素。"
+
+msgid "Transcription"
+msgstr "转录"
+
+msgid "Toggle Visibility"
+msgstr "切换可见性"
+
+msgid "Audio File"
+msgstr "音频文件"
+
+msgid "Summary Details"
+msgstr "摘要详情"
+
+msgid "Back to Audio Media"
+msgstr "返回音频媒体"
+
+# Plural forms
+msgid "%(counter)d summary version"
+msgid_plural "%(counter)d summary versions"
+msgstr[0] "%(counter)d 个摘要版本"
+
+# Messages with variables
+msgid "Latest Summary (%(summary_type)s)"
+msgstr "最新摘要 (%(summary_type)s)"
+
+msgid "Generated on %(date)s"
+msgstr "生成于 %(date)s"
+
+msgid "Summary History (%(count)s)"
+msgstr "摘要历史 (%(count)s)"
+
+msgid "%(type)s Summary"
+msgstr "%(type)s 摘要"
+
+msgid "Model: %(model)s"
+msgstr "模型：%(model)s"
+
+msgid "Generated: %(date)s"
+msgstr "生成：%(date)s"
+
+msgid "Summary: %(type)s - %(title)s - StreamSparkAI"
+msgstr "摘要：%(type)s - %(title)s - StreamSparkAI"

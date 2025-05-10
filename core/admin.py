@@ -2,6 +2,7 @@ import os
 import logging
 from datetime import datetime
 from urllib.parse import urljoin
+import concurrent.futures
 
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
@@ -65,17 +66,20 @@ class SummaryActionForm(ActionForm):
 
 @admin.register(AudioMedia)
 class AudioMediaAdmin(admin.ModelAdmin):
+    # Class-level ThreadPoolExecutor for background tasks
+    _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="audio-process")
+    
     list_display = ('title', 'upload_date', 'processing_status', 'transcription_status', 
                    'has_original_file', 'has_processed_file', 'has_summary')
     list_filter = ('processing_status', 'transcription_status', 'upload_date', 'summary_type')
-    search_fields = ('title', 'description')
+    search_fields = ('title', 'description', 'source', 'subtitle')
     readonly_fields = ('upload_date', 'processing_date', 'transcription_start_date', 
                       'transcription_end_date', 'processing_status', 'transcription_status', 
                       'raw_transcription_admin_display', 'formatted_transcription', 
-                      'summary', 'summary_date', 'selected_model')
+                      'summary', 'summary_date', 'selected_model', 'subtitle')
     fieldsets = (
         (_('Basic Information'), {
-            'fields': ('title', 'description', 'upload_date')
+            'fields': ('title', 'description', 'source', 'subtitle', 'upload_date')
         }),
         (_('Files'), {
             'fields': ('original_file', 'processed_file')
@@ -92,7 +96,8 @@ class AudioMediaAdmin(admin.ModelAdmin):
         }),
     )
     actions = ['convert_to_aac', 'transcribe_audio', 'convert_and_transcribe', 
-              'generate_general_summary', 'generate_detailed_summary', 'generate_key_points', 'generate_meeting_minutes']
+              'generate_general_summary', 'generate_detailed_summary', 'generate_key_points', 
+              'generate_meeting_minutes', 'generate_subtitle', 'process_audio_with_threadpool']
     
     # 添加操作表单，用于在执行操作时指定LLM模型
     action_form = SummaryActionForm
@@ -221,6 +226,166 @@ class AudioMediaAdmin(admin.ModelAdmin):
         """Generate meeting minutes for selected audio files"""
         self._generate_summary(request, queryset, 'MEETING_MINUTES')
     generate_meeting_minutes.short_description = _("Generate meeting minutes")
+    
+    def generate_subtitle(self, request, queryset):
+        """Generate short subtitle for selected audio files"""
+        success_count = 0
+        error_count = 0
+        
+        # 从请求中获取LLM模型，根据模型自动确定提供商
+        llm_model = request.POST.get('llm_model') or None
+        llm_provider = SummaryActionForm.get_provider_for_model(llm_model)
+        
+        logger.info(f"批量生成副标题, 提供商: {llm_provider}, 模型: {llm_model or '默认'}, 文件数: {queryset.count()}")
+        
+        for audio in queryset:
+            if not audio.formatted_transcription:
+                logger.warning(f"ID: {audio.id}, 标题: {audio.title} - 无可用转录文本, 跳过副标题生成")
+                self.message_user(request, 
+                                f"{audio.title}: No transcription available", 
+                                level=messages.WARNING)
+                error_count += 1
+                continue
+                
+            logger.info(f"ID: {audio.id}, 标题: {audio.title} - 开始生成副标题")
+            success, error = audio.generate_subtitle(
+                llm_provider=llm_provider,
+                model=llm_model
+            )
+            
+            if success:
+                success_count += 1
+                self.message_user(request, 
+                                f"{audio.title}: Subtitle generated successfully: '{audio.subtitle}'", 
+                                level=messages.SUCCESS)
+            else:
+                error_count += 1
+                logger.error(f"ID: {audio.id}, 标题: {audio.title} - 副标题生成失败: {error}")
+                self.message_user(request, 
+                                f"{audio.title}: {error}", 
+                                level=messages.ERROR)
+        
+        if success_count > 0:
+            self.message_user(request, 
+                             f"Successfully generated subtitles for {success_count} file(s)", 
+                             level=messages.SUCCESS)
+        
+        if error_count > 0:
+            self.message_user(request, 
+                             f"Failed to generate subtitles for {error_count} file(s)", 
+                             level=messages.WARNING)
+                             
+    generate_subtitle.short_description = _("Generate short subtitle")
+    
+    def process_audio_with_threadpool(self, request, queryset):
+        """
+        Process selected media files in a thread pool:
+        1. Convert to AAC
+        2. Transcribe
+        3. Generate short title
+        4. Generate detailed summary
+        """
+        # Get the selected model from the form
+        llm_model = request.POST.get('llm_model') or None
+        llm_provider = SummaryActionForm.get_provider_for_model(llm_model)
+        
+        audio_count = queryset.count()
+        
+        def process_single_file(audio):
+            """Process a single audio file with all steps"""
+            logger.info(f"Starting background processing for ID: {audio.id}, 标题: {audio.title}")
+            
+            try:
+                # Step 1: Convert to AAC
+                success_convert, error_convert = audio.convert_to_aac()
+                if not success_convert:
+                    logger.error(f"ID: {audio.id}, 标题: {audio.title} - 转换AAC失败: {error_convert}")
+                    return f"Failed to convert {audio.title} to AAC: {error_convert}"
+                
+                logger.info(f"ID: {audio.id}, 标题: {audio.title} - AAC转换成功")
+                
+                # Step 2: Transcribe audio
+                success_transcribe, error_transcribe = audio.transcribe_audio()
+                if not success_transcribe:
+                    logger.error(f"ID: {audio.id}, 标题: {audio.title} - 转录失败: {error_transcribe}")
+                    return f"Failed to transcribe {audio.title}: {error_transcribe}"
+                    
+                logger.info(f"ID: {audio.id}, 标题: {audio.title} - 转录成功")
+                
+                # Step 3: Generate subtitle
+                if audio.formatted_transcription:
+                    success_title, error_title = audio.generate_subtitle(
+                        llm_provider=llm_provider,
+                        model=llm_model
+                    )
+                    
+                    if not success_title:
+                        logger.error(f"ID: {audio.id}, 标题: {audio.title} - 副标题生成失败: {error_title}")
+                    else:
+                        logger.info(f"ID: {audio.id}, 标题: {audio.title} - 副标题生成成功: '{audio.subtitle}'")
+                
+                # Step 4: Generate detailed summary
+                if audio.formatted_transcription:
+                    success_summary, error_summary = audio.generate_summary(
+                        summary_type_str='GENERAL_DETAIL',
+                        llm_provider=llm_provider,
+                        model=llm_model
+                    )
+                    
+                    if not success_summary:
+                        logger.error(f"ID: {audio.id}, 标题: {audio.title} - 详细总结生成失败: {error_summary}")
+                    else:
+                        logger.info(f"ID: {audio.id}, 标题: {audio.title} - 详细总结生成成功")
+                
+                logger.info(f"Background processing completed for ID: {audio.id}, 标题: {audio.title}")
+                return f"Successfully processed {audio.title}"
+            except Exception as e:
+                logger.exception(f"ID: {audio.id}, 标题: {audio.title} - 处理过程中发生异常: {str(e)}")
+                return f"Error processing {audio.title}: {str(e)}"
+        
+        def run_batch_processing():
+            """Process all audio files in the batch"""
+            logger.info(f"开始后台处理任务: {audio_count} 个文件, 模型: {llm_model or '默认'}, 提供商: {llm_provider}")
+            try:
+                # Copy the queryset IDs to avoid potential query issues
+                audio_ids = list(queryset.values_list('id', flat=True))
+                
+                # Process each audio file
+                futures = {}
+                for audio_id in audio_ids:
+                    try:
+                        # Re-fetch each audio item to avoid potential stale data issues
+                        audio = AudioMedia.objects.get(id=audio_id)
+                        futures[self._executor.submit(process_single_file, audio)] = audio.title
+                    except AudioMedia.DoesNotExist:
+                        logger.error(f"无法找到ID为 {audio_id} 的音频记录")
+                
+                # Wait for all tasks to complete
+                completed = 0
+                for future in concurrent.futures.as_completed(futures):
+                    audio_title = futures[future]
+                    try:
+                        result = future.result()
+                        completed += 1
+                        logger.info(f"完成任务 ({completed}/{len(futures)}): {audio_title} - {result}")
+                    except Exception as e:
+                        logger.exception(f"处理任务失败: {audio_title} - {str(e)}")
+                
+                logger.info(f"所有后台任务处理完成: {completed}/{len(futures)} 个任务成功")
+            except Exception as e:
+                logger.exception(f"后台处理任务发生异常: {str(e)}")
+        
+        # Submit the batch processing to the executor
+        self._executor.submit(run_batch_processing)
+        
+        # Return immediately with a message
+        self.message_user(
+            request,
+            _("Background processing started for %(count)d file(s). You can safely leave this page.") % {'count': audio_count},
+            level=messages.SUCCESS
+        )
+    
+    process_audio_with_threadpool.short_description = _("Process in background (convert, transcribe, summarize)")
     
     def _generate_summary(self, request, queryset, summary_type):
         """Generic summary generation method"""

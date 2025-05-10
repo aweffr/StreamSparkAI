@@ -16,13 +16,14 @@
                         <h5 class="mb-1">{{ media.title }}</h5>
                         <small>{{ media.upload_date|date:"Y-m-d H:i" }}</small>
                     </div>
-                    {% if media.description %}
+                    {% if media.subtitle %}
+                        <p class="mb-1 text-muted">{{ media.subtitle }}</p>
+                    {% elif media.description %}
                         <p class="mb-1">{{ media.description|truncatechars:150 }}</p>
                     {% endif %}
                     <small>
-                        {% if media.summary %}
-                            <span class="badge bg-success me-1">{% trans "Summarized" %}</span>
-                        {% endif %}
+                        {% if media.source %}<span class="badge bg-secondary me-1">{{ media.source }}</span>{% endif %}
+                        {% if media.summary %}<span class="badge bg-success me-1">{% trans "Summarized" %}</span>{% endif %}
                         <span class="badge bg-info">
                             {% blocktrans count counter=media.summary_snapshots.count %}
                             {{ counter }} summary version

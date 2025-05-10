@@ -63,6 +63,7 @@ def get_prompt_template(summary_type):
     """根据总结类型获取提示词模板"""
     templates = {
         SummaryType.GENERAL: trim_multiple_line_indent("""
+            【直接输出总结内容，不要加任何开场白或引导语】
             请总结以下转录文本的主要内容，使用简明的语言，并保持第三人称客观视角。
             
             {context_info}
@@ -74,12 +75,30 @@ def get_prompt_template(summary_type):
             """),
             
         SummaryType.GENERAL_DETAIL: trim_multiple_line_indent("""
-            请对以下转录文本进行详细总结，包括关键讨论点、重要决定和主要观点。使用第三人称客观视角，保持准确性，并提供比一般总结更丰富的信息和细节。
-            
-            请记住：
+            【直接输出总结内容，不要加任何开场白或引导语如"以下是"、"好的"等】
+            请对以下转录文本进行全面、详细的总结，使用清晰的结构和Markdown格式呈现，使内容易于阅读和理解。
+
+            ## 总结要求：
+            1. 开头提供**概览/核心摘要 (Executive Summary)**：用简练的语言（约200-300字）概括最重要的结论、核心观点和亮点，让读者快速掌握精髓。
+            2. 使用二级标题（**标题**）划分主要议题或段落
+            3. 适当使用列表格式（有序或无序）呈现关键点和细节
+            4. 引用重要的原文语句或数据时使用突出格式
+            5. 如有数据或统计信息，请单独列出并强调
+            6. 明确标识不同发言人的观点和立场（如适用）
+            7. 展示观点之间的逻辑关系和因果联系
+            8. 结尾部分总结核心观点或结论
+            9. 提供比一般总结更丰富的信息和细节
+
+            ## 内容分类指南：
+            - 事实性内容：客观呈现提及的事件、数据和实际情况
+            - 观点与预测：明确标识主观看法、预测和判断，并注明归属
+            - 决策与建议：突出任何达成的决定、提出的建议或行动计划
+            - 争议与不确定性：标明存在分歧或不确定的领域
+
+            ## 重要原则：
             1. 只总结文本中实际存在的内容，不要添加任何不在原文中的信息
             2. 如果内容有模糊不清或不确定的部分，请明确指出
-            3. 保持总结与原文的一致性，避免任何形式的夸大或推测
+            3. 保持第三人称客观视角，避免任何形式的夸大或推测
             
             {context_info}
             
@@ -90,6 +109,7 @@ def get_prompt_template(summary_type):
             """),
             
         SummaryType.KEY_POINTS: trim_multiple_line_indent("""
+            【直接输出要点列表，不要加任何开场白或引导语】
             请从以下转录文本中提取5-10个关键点，以要点形式列出，并对每个关键点做简短解释。
             
             {context_info}
@@ -101,6 +121,7 @@ def get_prompt_template(summary_type):
             """),
             
         SummaryType.MEETING_MINUTES: trim_multiple_line_indent("""
+            【直接输出会议纪要，不要加任何开场白或引导语】
             请将以下会议转录整理为标准会议纪要格式，包含以下部分：
             1. 会议主题
             2. 与会者（从转录中推断）
@@ -117,6 +138,7 @@ def get_prompt_template(summary_type):
             """),
             
         SummaryType.INTERVIEW: trim_multiple_line_indent("""
+            【直接输出文章内容，不要加任何开场白或引导语】
             请将以下采访转录总结为一篇文章，包含：
             1. 采访主题
             2. 主要观点
@@ -132,6 +154,7 @@ def get_prompt_template(summary_type):
             """),
             
         SummaryType.QA: trim_multiple_line_indent("""
+            【直接输出问答内容，不要加任何开场白或引导语】
             请从以下转录文本中提取所有问题和回答，并按以下格式整理：
             
             问题1: [问题内容]
@@ -314,7 +337,7 @@ class OpenAIClient(LLMClient):
         prompt = get_prompt_template(summary_type).format(text=text, context_info=context_info)
         
         messages = [
-            {"role": "system", "content": "你是一个专业的内容总结助手。"},
+            {"role": "system", "content": "你是一个专业的内容总结助手。直接输出总结内容，不要加任何开场白或引导语。"},
             {"role": "user", "content": prompt}
         ]
 
@@ -351,7 +374,7 @@ class OpenAIClient(LLMClient):
         """发送健康检查请求到OpenAI API"""
         try:
             messages = [
-                {"role": "system", "content": "你是一个AI助手。"},
+                {"role": "system", "content": "你是一个AI助手。直接输出内容，不要加任何开场白或引导语。"},
                 {"role": "user", "content": prompt}
             ]
             
@@ -434,7 +457,7 @@ class AlibabaClient(LLMClient):
         prompt = get_prompt_template(summary_type).format(text=text, context_info=context_info)
         
         messages = [
-            {"role": "system", "content": "你是一个专业的内容总结助手。"},
+            {"role": "system", "content": "你是一个专业的内容总结助手。直接输出总结内容，不要加任何开场白或引导语。"},
             {"role": "user", "content": prompt}
         ]
         
@@ -481,7 +504,7 @@ class AlibabaClient(LLMClient):
         """发送健康检查请求到阿里巴巴达摩院API"""
         try:
             messages = [
-                {"role": "system", "content": "你是一个AI助手。"},
+                {"role": "system", "content": "你是一个AI助手。直接输出内容，不要加任何开场白或引导语。"},
                 {"role": "user", "content": prompt}
             ]
             

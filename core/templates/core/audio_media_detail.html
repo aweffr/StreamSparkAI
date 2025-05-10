@@ -15,7 +15,9 @@
         
         <h2 class="mb-3">{{ media.title }}</h2>
         
-        {% if media.description %}
+        {% if media.subtitle %}
+            <p class="lead text-muted">{{ media.subtitle }}</p>
+        {% elif media.description %}
             <p class="lead">{{ media.description }}</p>
         {% endif %}
         
@@ -27,6 +29,11 @@
                 <dl class="row">
                     <dt class="col-sm-3">{% trans "Upload Date" %}</dt>
                     <dd class="col-sm-9">{{ media.upload_date|date:"Y-m-d H:i" }}</dd>
+                    
+                    {% if media.source %}
+                    <dt class="col-sm-3">{% trans "Source" %}</dt>
+                    <dd class="col-sm-9">{{ media.source }}</dd>
+                    {% endif %}
                     
                     <dt class="col-sm-3">{% trans "Processing Status" %}</dt>
                     <dd class="col-sm-9">

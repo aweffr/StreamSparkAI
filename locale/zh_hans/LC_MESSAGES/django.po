@@ -62,6 +62,18 @@ msgstr "摘要日期"
 msgid "Has Summary"
 msgstr "有摘要"
 
+msgid "Source"
+msgstr "来源"
+
+msgid "Where the audio came from"
+msgstr "音频的来源"
+
+msgid "Subtitle"
+msgstr "副标题"
+
+msgid "A short subtitle summarizing the content (30-150 chars)"
+msgstr "简短总结内容的副标题（30-150字）"
+
 # Status options
 msgid "Not Started"
 msgstr "尚未开始"
@@ -116,6 +128,12 @@ msgstr "生成会议纪要"
 
 msgid "Generate detailed summary"
 msgstr "生成详细摘要"
+
+msgid "Generate short subtitle"
+msgstr "生成简短副标题"
+
+msgid "Process in background (convert, transcribe, summarize)"
+msgstr "后台处理（转换、转录、摘要）"
 
 # LLM related translations
 msgid "LLM Model"
@@ -213,6 +231,9 @@ msgstr "模型：%(model)s"
 
 msgid "Generated: %(date)s"
 msgstr "生成：%(date)s"
+
+msgid "Background processing started for %(count)d file(s). You can safely leave this page."
+msgstr "已开始后台处理 %(count)d 个文件。您可以安全离开此页面。"
 
 msgid "Summary: %(type)s - %(title)s - StreamSparkAI"
 msgstr "摘要：%(type)s - %(title)s - StreamSparkAI"

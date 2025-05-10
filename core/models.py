@@ -39,6 +39,32 @@ def get_world_background():
         logger.exception(f"读取世界背景信息文件时出错: {e}")
         return ""
 
+def build_subtitle_prompt(title, description, formatted_transcription, max_length=6000):
+    """
+    构建用于生成副标题的提示词
+    
+    Args:
+        title (str): 音频标题
+        description (str): 音频描述
+        formatted_transcription (str): 转录文本
+        max_length (int): 传递给LLM的最大转录文本长度
+        
+    Returns:
+        str: 格式化的提示词
+    """
+    return f"""请为以下音频转录文本生成一个简短副标题，要求：
+1. 长度在30-150个字符之间
+2. 简明扼要地概括内容核心
+3. 有吸引力，能引起读者兴趣
+4. 格式流畅，不使用标题格式（冒号、破折号等）
+5. 只输出副标题文本，不要有任何前缀、引号或解释
+
+音频标题: {title}
+{description if description else ''}
+
+转录文本:
+{formatted_transcription[:max_length]}"""
+
 class AudioMedia(models.Model):
     """
     Model for storing and processing audio/video files.
@@ -53,6 +79,10 @@ class AudioMedia(models.Model):
     id = models.UUIDField(primary_key=True, default=get_uuid, editable=False)  # Using uuid7 function directly
     title = models.CharField(_('Title'), max_length=191)
     description = models.TextField(_('Description'), blank=True)
+    
+    # New fields
+    source = models.CharField(_('Source'), max_length=255, blank=True, help_text=_("Where the audio came from"))
+    subtitle = models.CharField(_('Subtitle'), max_length=150, blank=True, help_text=_("A short subtitle summarizing the content (30-150 chars)"))
     
     # Original file upload
     original_file = models.FileField(
@@ -325,6 +355,69 @@ class AudioMedia(models.Model):
         except Exception as e:
             error_msg = f"为 {self.title} 生成总结时出错: {str(e)}"
             logger.exception(f"ID: {self.id}, 标题: {self.title} - 生成总结失败: {str(e)}")
+            return False, error_msg
+
+    def generate_subtitle(self, llm_provider=None, model=None):
+        """
+        使用LLM为转录文本生成简短副标题
+        
+        Args:
+            llm_provider (str): LLM提供商 ('openai' 或 'alibaba')
+            model (str): 模型名称，如果为None则使用默认模型
+            
+        Returns:
+            tuple: (success, error_message)
+        """
+        # 检查是否有转录文本可用
+        if not self.formatted_transcription:
+            logger.warning(f"ID: {self.id}, 标题: {self.title} - 无可用转录文本, 无法生成副标题")
+            return False, "没有可用的转录文本来生成副标题"
+        
+        # 如果未指定提供商，使用默认提供商
+        if not llm_provider:
+            llm_provider = getattr(settings, 'DEFAULT_LLM_PROVIDER', 'openai')
+        
+        logger.info(f"ID: {self.id}, 标题: {self.title} - 开始生成副标题, 提供商: {llm_provider}, 模型: {model or '默认'}")
+        
+        try:
+            # 获取LLM客户端
+            client = LLMClient.get_client(provider=llm_provider)
+            
+            # 验证模型是否有效，如果指定了模型
+            if model and not is_valid_model(llm_provider, model):
+                logger.warning(f"指定的模型 {model} 对于提供商 {llm_provider} 无效，将使用默认模型")
+                model = None
+            
+            # 使用工具函数构建提示词
+            prompt = build_subtitle_prompt(self.title, self.description, self.formatted_transcription)
+            
+            # 调用LLM API
+            result = client.summarize(
+                text=prompt,
+                summary_type=SummaryType.GENERAL,
+                model=model
+            )
+            
+            if 'summary' in result and result['summary']:
+                # 清理并限制副标题长度
+                subtitle = result['summary'].strip()
+                if len(subtitle) > 180:
+                    subtitle = subtitle[:180] + '...'
+                
+                # 更新模型字段
+                self.subtitle = subtitle
+                self.save(update_fields=['subtitle', ])
+                
+                logger.info(f"ID: {self.id}, 标题: {self.title} - 成功生成副标题: '{subtitle}'")
+                return True, None
+            else:
+                error_msg = "LLM未返回有效的副标题内容"
+                logger.error(f"ID: {self.id}, 标题: {self.title} - {error_msg}")
+                return False, error_msg
+                
+        except Exception as e:
+            error_msg = f"为 {self.title} 生成副标题时出错: {str(e)}"
+            logger.exception(f"ID: {self.id}, 标题: {self.title} - 生成副标题失败: {str(e)}")
             return False, error_msg
 
     @property

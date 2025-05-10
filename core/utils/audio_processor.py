@@ -50,8 +50,8 @@ def check_ffmpeg_installed():
 def convert_to_mono_aac(
     input_file_path, 
     output_filename=None, 
-    bitrate="64k", 
-    sample_rate=16000,
+    bitrate="96k", 
+    sample_rate=44100,
     remove_original=False
 ):
     """
@@ -61,8 +61,8 @@ def convert_to_mono_aac(
         input_file_path (str or Path): Path to input audio file
         output_filename (str, optional): Name for the output file (without extension). 
                                         If None, a UUID will be used.
-        bitrate (str, optional): Target bitrate. Defaults to "64k".
-        sample_rate (int, optional): Sample rate in Hz. Defaults to 16000.
+        bitrate (str, optional): Target bitrate. Defaults to "96k".
+        sample_rate (int, optional): Sample rate in Hz. Defaults to 44100.
         remove_original (bool, optional): Whether to remove original file after conversion. 
                                          Defaults to False.
     
@@ -158,14 +158,14 @@ def convert_to_mono_aac(
         return None
 
 
-def process_audio_file(file_path, bitrate="64k", sample_rate=16000):
+def process_audio_file(file_path, bitrate="96k", sample_rate=44100):
     """
     Process audio file with standardized settings: mono channel, AAC codec, specified bitrate.
     
     Args:
         file_path (str or Path): Path to the input audio file
-        bitrate (str, optional): Target bitrate. Defaults to "64k".
-        sample_rate (int, optional): Sample rate in Hz. Defaults to 16000.
+        bitrate (str, optional): Target bitrate. Defaults to "96k".
+        sample_rate (int, optional): Sample rate in Hz. Defaults to 44100.
     
     Returns:
         str: Path to processed file or None if processing failed

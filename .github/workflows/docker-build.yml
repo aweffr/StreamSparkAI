@@ -31,6 +31,8 @@ jobs:
       - name: Get current date
         if: github.event_name != 'pull_request'
         id: date
+        env:
+          TZ: 'Asia/Shanghai'
         run: echo "DATE=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
       
       - name: Build and push

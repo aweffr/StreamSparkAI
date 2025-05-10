@@ -2,6 +2,7 @@
 import os
 import sys
 import time
+import socket
 import logging
 from urllib.parse import urlparse
 import subprocess
@@ -102,7 +103,8 @@ def main():
     logger.info("Compiling messages...")
     subprocess.run(["python", "manage.py", "compilemessages"], check=True)
 
-    process = subprocess.Popen(["gunicorn", "StreamSparkAI.wsgi:application", "--bind", "0.0.0.0:8000"])
+    logger.info("Starting Gunicorn server...")
+    process = subprocess.Popen(["gunicorn", "conf.wsgi:application", "--bind", "0.0.0.0:8000"])
     # Wait for the process to finish, this keeps the container running
     process.wait()
     sys.exit(process.returncode)

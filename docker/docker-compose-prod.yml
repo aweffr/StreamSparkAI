@@ -1,36 +1,60 @@
 version: '3.8'
 
 services:
-  web:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+  nginx:
+    image: nginx:1.25
     ports:
-      - "8000:8000"
+      - "80:80"
     volumes:
-      - ..:/app
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ../static:/app/static
+      - ../media:/app/media
+    depends_on:
+      - web
+    restart: always
+
+  web:
+    image: aweffr/streamsparkai:latest
+    volumes:
+      - ../static:/app/static
+      - ../media:/app/media
+      - ../logs:/app/logs
+      - ../tmp:/app/tmp
     depends_on:
       - db
     environment:
       - DATABASE_URL=${DATABASE_URL:-mysql://user:password@db:3306/streamsparkai}
-      - DEBUG=${DEBUG:-True}
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
       # Superuser credentials, only will automatically create if no users exist
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
       - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
-      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-adminpassword}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      # Storage configuration
+      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # API keys
+      - ALIBABA_DASHSCOPE_API_KEY=${ALIBABA_DASHSCOPE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-https://api.openai.com/v1}
+      - DEFAULT_OPENAI_MODEL=${DEFAULT_OPENAI_MODEL:-gemini-2.5-flash-preview-04-17}
+      - ALIBABA_LLM_MODEL=${ALIBABA_LLM_MODEL:-qwen-max}
+      - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-openai}
+    restart: always
 
   db:
     image: mysql:8.0
-    ports:
-      - "3306:3306"
     volumes:
       - spark_mysql_data:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-streamsparkai}
       - MYSQL_USER=${MYSQL_USER:-user}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-password}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    restart: always
 
 volumes:
   spark_mysql_data:

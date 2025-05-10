@@ -43,6 +43,7 @@ services:
       - DEFAULT_OPENAI_MODEL=${DEFAULT_OPENAI_MODEL:-gemini-2.5-flash-preview-04-17}
       - ALIBABA_LLM_MODEL=${ALIBABA_LLM_MODEL:-qwen-max}
       - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-openai}
+      - SERVER_ORIGIN=${SERVER_ORIGIN:-http://localhost:8080}
     restart: always
 
   db:

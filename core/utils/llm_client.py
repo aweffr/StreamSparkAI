@@ -1,6 +1,7 @@
 import json
 import logging
 import requests
+from datetime import datetime
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from enum import Enum, auto
@@ -111,14 +112,17 @@ def get_prompt_template(summary_type):
             - 决策与建议：突出任何达成的决定、提出的建议或行动计划
             - 争议与不确定性：标明存在分歧或不确定的领域
 
-            ## 重要原则：
-            1. 只总结文本中实际存在的内容，不要添加任何不在原文中的信息
-            2. 如果内容有模糊不清或不确定的部分，请明确指出
+            ## 重要原则 - 防止幻觉：
+            1. 严格限制：只总结文本中实际存在的内容，绝对不要添加任何不在原文中的信息
+            2. 明确标注不确定性：如果内容有模糊不清或不确定的部分，请使用"原文中未明确说明"、"内容不清晰"等字样
             3. 保持第三人称客观视角，避免任何形式的夸大或推测
+            4. 如果转录文本不完整或含糊，请在相关部分注明"[内容不完整]"，而不是试图填补信息缺口
+            5. 如果转录中缺乏某些你认为应该有的信息，不要自行补充，应当明确指出"转录中未提及X相关信息"
+            6. 请记住：不完整但准确的总结，优于完整但包含虚构内容的总结
             
             {context_info}
             
-            注意：转录文本存在机器转录误差，请尽模型最大努力去纠错。
+            注意：转录文本存在机器转录误差，请尽模型最大努力去纠错，如有无法确定的内容，请使用[不确定]标注。
             
             转录文本:
             {text}
@@ -298,7 +302,7 @@ class OpenAIClient(LLMClient):
             raise ValueError("设置中未找到OpenAI API密钥")
         
         self.api_base = getattr(settings, 'OPENAI_API_BASE', "https://api.openai.com/v1")
-        self.default_model = getattr(settings, 'OPENAI_MODEL', "gpt-4o")
+        self.default_model = getattr(settings, 'DEFAULT_OPENAI_MODEL', "gemini-2.5-flash-preview-04-17")
     
     @classmethod
     def _send_request(cls, api_key, api_base, model, messages, temperature=0.3):
@@ -352,8 +356,12 @@ class OpenAIClient(LLMClient):
         """使用OpenAI API总结文本内容"""
         prompt = get_prompt_template(summary_type).format(text=text, context_info=context_info)
         
+        # 添加当前日期时间到系统提示
+        current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        system_prompt = f"你是一个专业的内容总结助手。当前日期时间：{current_datetime}。直接输出总结内容，不要加任何开场白或引导语。"
+        
         messages = [
-            {"role": "system", "content": "你是一个专业的内容总结助手。直接输出总结内容，不要加任何开场白或引导语。"},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ]
 
@@ -472,8 +480,12 @@ class AlibabaClient(LLMClient):
         """使用阿里巴巴达摩院API总结文本内容"""
         prompt = get_prompt_template(summary_type).format(text=text, context_info=context_info)
         
+        # 添加当前日期时间到系统提示
+        current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        system_prompt = f"你是一个专业的内容总结助手。当前日期时间：{current_datetime}。直接输出总结内容，不要加任何开场白或引导语。"
+        
         messages = [
-            {"role": "system", "content": "你是一个专业的内容总结助手。直接输出总结内容，不要加任何开场白或引导语。"},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ]
         

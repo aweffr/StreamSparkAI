@@ -62,6 +62,15 @@ class SummaryActionForm(ActionForm):
         else:
             # 默认回退到配置中的默认提供商
             return getattr(settings, 'DEFAULT_LLM_PROVIDER', 'openai')
+            
+    @staticmethod
+    def get_default_model_for_provider(provider):
+        """获取指定提供商的默认模型"""
+        if provider.lower() == 'openai':
+            return settings.DEFAULT_OPENAI_MODEL
+        elif provider.lower() == 'alibaba':
+            return settings.ALIBABA_LLM_MODEL
+        return None
 
 
 @admin.register(AudioMedia)
@@ -70,8 +79,8 @@ class AudioMediaAdmin(admin.ModelAdmin):
     _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="audio-process")
     
     list_display = ('title', 'upload_date', 'processing_status', 'transcription_status', 
-                   'has_original_file', 'has_processed_file', 'has_summary')
-    list_filter = ('processing_status', 'transcription_status', 'upload_date', 'summary_type')
+                   'has_original_file', 'has_processed_file', 'has_summary', 'is_private')
+    list_filter = ('processing_status', 'transcription_status', 'upload_date', 'summary_type', 'is_private')
     search_fields = ('title', 'description', 'source', 'subtitle')
     readonly_fields = ('upload_date', 'processing_date', 'transcription_start_date', 
                       'transcription_end_date', 'processing_status', 'transcription_status', 
@@ -79,7 +88,7 @@ class AudioMediaAdmin(admin.ModelAdmin):
                       'summary', 'summary_date', 'selected_model', 'subtitle')
     fieldsets = (
         (_('Basic Information'), {
-            'fields': ('title', 'description', 'source', 'subtitle', 'upload_date')
+            'fields': ('title', 'description', 'source', 'subtitle', 'is_private', 'upload_date')
         }),
         (_('Files'), {
             'fields': ('original_file', 'processed_file')
@@ -236,7 +245,12 @@ class AudioMediaAdmin(admin.ModelAdmin):
         llm_model = request.POST.get('llm_model') or None
         llm_provider = SummaryActionForm.get_provider_for_model(llm_model)
         
-        logger.info(f"批量生成副标题, 提供商: {llm_provider}, 模型: {llm_model or '默认'}, 文件数: {queryset.count()}")
+        # 如果没有指定模型，则使用提供商的默认模型
+        if not llm_model:
+            llm_model = SummaryActionForm.get_default_model_for_provider(llm_provider)
+            logger.info(f"未指定模型，使用{llm_provider}的默认模型: {llm_model}")
+        
+        logger.info(f"批量生成副标题, 提供商: {llm_provider}, 模型: {llm_model}, 文件数: {queryset.count()}")
         
         for audio in queryset:
             if not audio.formatted_transcription:
@@ -289,6 +303,11 @@ class AudioMediaAdmin(admin.ModelAdmin):
         llm_model = request.POST.get('llm_model') or None
         llm_provider = SummaryActionForm.get_provider_for_model(llm_model)
         
+        # 如果没有指定模型，则使用提供商的默认模型
+        if not llm_model:
+            llm_model = SummaryActionForm.get_default_model_for_provider(llm_provider)
+            logger.info(f"未指定模型，使用{llm_provider}的默认模型: {llm_model}")
+            
         audio_count = queryset.count()
         
         def process_single_file(audio):
@@ -396,7 +415,12 @@ class AudioMediaAdmin(admin.ModelAdmin):
         llm_model = request.POST.get('llm_model') or None
         llm_provider = SummaryActionForm.get_provider_for_model(llm_model)
         
-        logger.info(f"批量生成{summary_type}类型总结, 提供商: {llm_provider}, 模型: {llm_model or '默认'}, 文件数: {queryset.count()}")
+        # 如果没有指定模型，则使用提供商的默认模型
+        if not llm_model:
+            llm_model = SummaryActionForm.get_default_model_for_provider(llm_provider)
+            logger.info(f"未指定模型，使用{llm_provider}的默认模型: {llm_model}")
+        
+        logger.info(f"批量生成{summary_type}类型总结, 提供商: {llm_provider}, 模型: {llm_model}, 文件数: {queryset.count()}")
         
         for audio in queryset:
             if not audio.formatted_transcription:

@@ -53,11 +53,11 @@ def build_subtitle_prompt(title, description, formatted_transcription, max_lengt
         str: 格式化的提示词
     """
     return f"""请为以下音频转录文本生成一个简短副标题，要求：
-1. 长度在30-150个字符之间
+1. 长度在10-120个字符之间
 2. 简明扼要地概括内容核心
 3. 有吸引力，能引起读者兴趣
 4. 格式流畅，不使用标题格式（冒号、破折号等）
-5. 只输出副标题文本，不要有任何前缀、引号或解释
+5. 只输出标题文本，不要有任何前缀、引号或解释
 
 音频标题: {title}
 {description if description else ''}
@@ -81,8 +81,9 @@ class AudioMedia(models.Model):
     description = models.TextField(_('Description'), blank=True)
     
     # New fields
-    source = models.CharField(_('Source'), max_length=255, blank=True, help_text=_("Where the audio came from"))
-    subtitle = models.CharField(_('Subtitle'), max_length=150, blank=True, help_text=_("A short subtitle summarizing the content (30-150 chars)"))
+    source = models.CharField(_('Source'), max_length=191, blank=True, help_text=_("Where the audio came from"))
+    subtitle = models.CharField(_('Subtitle'), max_length=191, blank=True, help_text=_("A short subtitle summarizing the content (30-150 chars)"))
+    is_private = models.BooleanField(_('Private'), default=False, help_text=_("If enabled, only authenticated users can view this media"))
     
     # Original file upload
     original_file = models.FileField(

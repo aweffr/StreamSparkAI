@@ -14,7 +14,7 @@ env = Env(
     ALIBABA_DASHSCOPE_API_KEY=(str, 'api_key'),
     OPENAI_API_KEY=(str, ''),
     OPENAI_API_BASE=(str, 'https://api.openai.com/v1'),
-    OPENAI_MODEL=(str, 'gpt-4o'),
+    DEFAULT_OPENAI_MODEL=(str, 'gemini-2.5-flash-preview-04-17'),
     ALIBABA_LLM_MODEL=(str, 'qwen-max'),
     DEFAULT_LLM_PROVIDER=(str, 'openai'),
     DATABASE_URL=(str, 'sqlite:////' + str(BASE_DIR / 'db.sqlite3')),
@@ -136,7 +136,7 @@ ALIBABA_DASHSCOPE_API_KEY = env('ALIBABA_DASHSCOPE_API_KEY')
 # LLM settings
 OPENAI_API_KEY = env('OPENAI_API_KEY')
 OPENAI_API_BASE = env('OPENAI_API_BASE')
-OPENAI_MODEL = env('OPENAI_MODEL')
+DEFAULT_OPENAI_MODEL = env('DEFAULT_OPENAI_MODEL')
 
 ALIBABA_LLM_MODEL = env('ALIBABA_LLM_MODEL')
 

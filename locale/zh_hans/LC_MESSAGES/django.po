@@ -19,6 +19,12 @@ msgstr "标题"
 msgid "Description"
 msgstr "描述"
 
+msgid "Private"
+msgstr "私有"
+
+msgid "If enabled, only authenticated users can view this media"
+msgstr "如果启用，只有已登录用户才能查看此媒体"
+
 msgid "Original File"
 msgstr "原始文件"
 

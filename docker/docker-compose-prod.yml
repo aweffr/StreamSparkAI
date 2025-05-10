@@ -4,7 +4,7 @@ services:
   nginx:
     image: nginx:1.25
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - ./nginx/conf:/etc/nginx/conf.d
       - ../static:/app/static
@@ -44,7 +44,6 @@ services:
       - ALIBABA_LLM_MODEL=${ALIBABA_LLM_MODEL:-qwen-max}
       - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-openai}
     restart: always
-    command: sleep inf
 
   db:
     image: mysql:8.0

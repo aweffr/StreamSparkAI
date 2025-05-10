@@ -18,17 +18,58 @@ env = Env(
     ALIBABA_LLM_MODEL=(str, 'qwen-max'),
     DEFAULT_LLM_PROVIDER=(str, 'openai'),
     DATABASE_URL=(str, 'sqlite:////' + str(BASE_DIR / 'db.sqlite3')),
+    SERVER_ORIGIN=(str, 'http://localhost:8000'),
 )
 
 env.read_env()
 
 SECRET_KEY = env('SECRET_KEY')
 
+SERVER_ORIGIN = env('SERVER_ORIGIN')
+
 DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = [
     '*'
 ]
+
+# CSRF Trusted Origins Configuration
+if DEBUG:
+    # Generate localhost and 127.0.0.1 URLs with various ports using a loop
+    CSRF_TRUSTED_ORIGINS = []
+    hosts = ['localhost', '127.0.0.1']
+    protocols = ['http', 'https']
+    ports = [None, '3000', '5000', '8000', '8080', '8888', '9000']
+    
+    for host in hosts:
+        for protocol in protocols:
+            for port in ports:
+                if port:
+                    CSRF_TRUSTED_ORIGINS.append(f"{protocol}://{host}:{port}")
+                else:
+                    CSRF_TRUSTED_ORIGINS.append(f"{protocol}://{host}")
+else:
+    # In production mode, add the server origin and its subdomains
+    from urllib.parse import urlparse
+    parsed_url = urlparse(SERVER_ORIGIN)
+    scheme = parsed_url.scheme
+    netloc = parsed_url.netloc
+    
+    # Handle domain with or without port
+    if ':' in netloc:
+        domain = netloc.split(':')[0]
+        port = netloc.split(':')[1]
+        CSRF_TRUSTED_ORIGINS = [
+            SERVER_ORIGIN,  # The exact server origin
+            f"{scheme}://*.{domain}:{port}",  # All subdomains with specific port
+            f"{scheme}://*.{domain}"  # All subdomains without port
+        ]
+    else:
+        domain = netloc
+        CSRF_TRUSTED_ORIGINS = [
+            SERVER_ORIGIN,  # The exact server origin
+            f"{scheme}://*.{domain}"  # All subdomains
+        ]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -196,3 +237,4 @@ LOGGING = {
         },
     },
 }
+

@@ -44,17 +44,22 @@ services:
       - ALIBABA_LLM_MODEL=${ALIBABA_LLM_MODEL:-qwen-max}
       - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-openai}
     restart: always
+    command: sleep inf
 
   db:
     image: mysql:8.0
     volumes:
       - spark_mysql_data:/var/lib/mysql
+      - ./mysql/conf.d:/etc/mysql/conf.d
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-streamsparkai}
       - MYSQL_USER=${MYSQL_USER:-user}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_CHARSET=utf8mb4
+      - MYSQL_COLLATION=utf8mb4_unicode_ci
     restart: always
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
 volumes:
   spark_mysql_data:

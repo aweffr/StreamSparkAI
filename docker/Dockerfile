@@ -8,22 +8,12 @@ ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple PIP_TRUSTED_HOST=mirror
 
 WORKDIR /build
 
+# Copy mirror setup script
+COPY docker/setup-mirrors.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup-mirrors.sh
+
 # Install build dependencies
-RUN if [ "$USE_TSINGHUA_MIRROR" = "true" ]; then \
-        # 处理 sources.list 文件（如果存在）
-        if [ -f /etc/apt/sources.list ]; then \
-            sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list && \
-            sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list; \
-        fi && \
-        # 处理 sources.list.d 目录中的文件
-        if [ -d /etc/apt/sources.list.d ]; then \
-            rm -f /etc/apt/sources.list.d/* && \
-            echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/debian.list && \
-            echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list.d/debian.list && \
-            echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list.d/debian.list && \
-            echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list.d/debian.list; \
-        fi; \
-    fi && \
+RUN /usr/local/bin/setup-mirrors.sh "$USE_TSINGHUA_MIRROR" && \
     export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && apt-get install -y --no-install-recommends \
     default-libmysqlclient-dev \
@@ -61,20 +51,20 @@ ENV TZ=Asia/Shanghai \
 
 WORKDIR /app
 
+# Copy mirror setup script
+COPY docker/setup-mirrors.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup-mirrors.sh
+
 # Install minimal runtime dependencies
-RUN if [ "$USE_TSINGHUA_MIRROR" = "true" ]; then \
-        # 处理 sources.list 文件（如果存在）
-        if [ -f /etc/apt/sources.list ]; then \
-            sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list && \
-            sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list; \
-        fi; \
-    fi && \
+RUN /usr/local/bin/setup-mirrors.sh "$USE_TSINGHUA_MIRROR" && \
     export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     ca-certificates \
     default-libmysqlclient-dev \
     tzdata \
+    gettext \
+    vim-tiny \
     && rm -rf /var/lib/apt/lists/* \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 

@@ -1,0 +1,17 @@
+<div class="language-selector">
+    <form action="{% url 'set_language' %}" method="post">
+        {% csrf_token %}
+        <input name="next" type="hidden" value="{{ request.path }}">
+        <select name="language" onchange="this.form.submit()">
+            {% for code, name in languages %}
+            <option value="{{ code }}" {% if code == current_lang %}selected{% endif %}>
+                {{ name }}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+    <!-- Debug info (remove in production) -->
+    <div style="font-size: 0.8em; color: #666;">
+        Current language: {{ current_lang }}
+    </div>
+</div>

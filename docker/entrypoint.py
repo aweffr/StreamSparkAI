@@ -101,8 +101,16 @@ def main():
     
     # Compile translation messages
     logger.info("Compiling messages...")
-    subprocess.run(["python", "manage.py", "compilemessages"], check=True)
-
+    try:
+        result = subprocess.run(["python", "manage.py", "compilemessages"], check=False, capture_output=True)
+        if result.returncode != 0:
+            logger.error(f"Failed to compile translation messages: {result.stderr.decode('utf-8')}")
+            # Continue anyway, don't fail the startup process
+        else:
+            logger.info("Successfully compiled translation messages")
+    except Exception as e:
+        logger.error(f"Error running compilemessages: {str(e)}")
+    
     logger.info("Starting Gunicorn server...")
     process = subprocess.Popen(["gunicorn", "conf.wsgi:application", "--bind", "0.0.0.0:8000"])
     # Wait for the process to finish, this keeps the container running

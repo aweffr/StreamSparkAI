@@ -1,11 +1,15 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import Http404
+from django.http import Http404, JsonResponse
 import markdown
 from .models import AudioMedia, SummarySnapshot
 import math  # Add this import for math.ceil
 import re
 import jieba  # Add jieba for Chinese word segmentation
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger  # Add this import
+import os
+from django.utils import translation
+from django.conf import settings
+from django.views.decorators.cache import never_cache
 
 def estimate_reading_time(text):
     """
@@ -113,4 +117,39 @@ def summary_snapshot_detail(request, pk):
     return render(request, 'core/summary_snapshot_detail.html', {
         'snapshot': snapshot,
         'summary_html': summary_html,
+    })
+
+@never_cache
+def debug_translations(request):
+    """
+    Debug view to check translation settings.
+    Only enable in development or temporarily in production.
+    """
+    if not settings.DEBUG and not request.user.is_superuser:
+        return JsonResponse({"error": "Not available"}, status=403)
+        
+    # Get current language
+    current_lang = translation.get_language()
+    
+    # Check if .mo files exist
+    locale_path = settings.LOCALE_PATHS[0]
+    mo_file_path = os.path.join(locale_path, current_lang, 'LC_MESSAGES', 'django.mo')
+    mo_file_exists = os.path.exists(mo_file_path)
+    
+    # Environment variables related to locale
+    locale_env = {k: v for k, v in os.environ.items() if 'lang' in k.lower() or 'loc' in k.lower()}
+    
+    return JsonResponse({
+        "current_language": current_lang,
+        "default_language": settings.LANGUAGE_CODE,
+        "available_languages": dict(settings.LANGUAGES),
+        "locale_paths": [str(p) for p in settings.LOCALE_PATHS],
+        "mo_file_exists": mo_file_exists,
+        "mo_file_path": mo_file_path,
+        "use_i18n": settings.USE_I18N,
+        "locale_middleware_enabled": "django.middleware.locale.LocaleMiddleware" in settings.MIDDLEWARE,
+        "locale_env_variables": locale_env,
+        "accept_language": request.META.get('HTTP_ACCEPT_LANGUAGE', 'Not provided'),
+        "language_cookie": request.COOKIES.get(settings.LANGUAGE_COOKIE_NAME, 'Not set'),
+        "language_session": request.session.get(translation.LANGUAGE_SESSION_KEY, 'Not set')
     })

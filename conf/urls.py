@@ -19,12 +19,15 @@ from django.urls import path, include
 from django.conf.urls.i18n import i18n_patterns
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.i18n import set_language
 
 admin.site.site_header = "StreamSparkAI Admin"
 admin.site.site_title = "StreamSparkAI Admin Portal"
 
 # Non-translated URLs
 urlpatterns = [
+    # Add language selection view
+    path('i18n/setlang/', set_language, name='set_language'),
     # Add other non-i18n URLs here
     path('', include('core.urls', namespace='core')),  # Adding core URLs to non-translated paths
 ]

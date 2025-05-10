@@ -35,7 +35,8 @@ RUN if [ "$USE_TSINGHUA_MIRROR" = "true" ]; then \
 
 # Copy requirements and install mysqlclient only
 COPY requirements.txt .
-RUN pip install --no-cache-dir mysqlclient
+RUN pip install --no-cache-dir mysqlclient && \
+    pip wheel mysqlclient -w /build/wheels/
 
 # Find all needed mysqlclient libraries
 RUN mkdir -p /build/lib && \
@@ -43,6 +44,8 @@ RUN mkdir -p /build/lib && \
     cp -L /usr/lib/x86_64-linux-gnu/libssl.so* /build/lib/ 2>/dev/null || true && \
     cp -L /usr/lib/x86_64-linux-gnu/libcrypto.so* /build/lib/ 2>/dev/null || true && \
     find /usr/local/lib/python3.12/site-packages -name "*.so" -o -name "*.so.*" | grep -i mysql | xargs -I {} cp {} /build/lib/
+
+RUN echo "print /build/lib \n" && find /build/lib/
 
 # Stage 2: Final image
 FROM python:3.12-slim
@@ -70,13 +73,21 @@ RUN if [ "$USE_TSINGHUA_MIRROR" = "true" ]; then \
     apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     ca-certificates \
+    default-libmysqlclient-dev \
     tzdata \
     && rm -rf /var/lib/apt/lists/* \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Copy mysql shared libraries from builder
 COPY --from=builder /build/lib/ /usr/lib/
-RUN ldconfig && echo "\ncheck /usr/lib... \n" && find /usr/lib
+# Copy mysqlclient wheel from builder
+COPY --from=builder /build/wheels/ /wheels/
+
+RUN ldconfig
+
+# Install mysqlclient wheel first
+RUN pip install --no-cache-dir /wheels/mysqlclient*.whl && \
+    echo "mysqlclient wheel installed successfully"
 
 # Copy mysqlclient Python package
 COPY --from=builder /usr/local/lib/python3.12/site-packages/MySQLdb /usr/local/lib/python3.12/site-packages/MySQLdb
@@ -89,7 +100,7 @@ RUN python -c "import MySQLdb; print('MySQLdb import successful'); import MySQLd
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip list | grep mysqlclient && \
-    echo "mysqlclient is available"
+    echo "all dependencies installed"
 
 # Copy the project files
 COPY . .

@@ -64,10 +64,11 @@
                 {% if media.processed_file %}
                 <div class="mt-3">
                     <h5>{% trans "Audio Player" %}</h5>
-                    <audio controls class="w-100">
-                        <source src="{{ media.processed_file.url }}" type="audio/aac">
-                        {% trans "Your browser does not support the audio element." %}
-                    </audio>
+                    <div id="audio-player-container" class="w-100">
+                        <button id="load-audio-btn" class="btn btn-outline-primary w-100 py-3">
+                            <i class="bi bi-play-circle me-2"></i>{% trans "Load Audio Player" %}
+                        </button>
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -123,4 +124,61 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadAudioBtn = document.getElementById('load-audio-btn');
+        
+        if (loadAudioBtn) {
+            loadAudioBtn.addEventListener('click', function() {
+                const container = document.getElementById('audio-player-container');
+                
+                // Get the escaped URL and decode HTML entities
+                const escapedUrl = "{{ media.processed_file.url }}";
+                const decodedUrl = decodeHTMLEntities(escapedUrl);
+                
+                // Create audio element
+                const audio = document.createElement('audio');
+                audio.setAttribute('controls', '');
+                audio.className = 'w-100';
+                
+                // Create source element with decoded URL
+                const source = document.createElement('source');
+                source.setAttribute('src', decodedUrl);
+                source.setAttribute('type', 'audio/aac');
+                
+                // Add fallback text
+                const fallbackText = document.createTextNode("{% trans 'Your browser does not support the audio element.' %}");
+                
+                // Assemble audio player
+                audio.appendChild(source);
+                audio.appendChild(fallbackText);
+                
+                // Replace button with audio player
+                container.innerHTML = '';
+                container.appendChild(audio);
+                
+                // Auto play after loading (optional)
+                audio.play().catch(e => console.log('Auto-play prevented:', e));
+            });
+        }
+        
+        // Function to decode HTML entities
+        function decodeHTMLEntities(text) {
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = text;
+            return textarea.value;
+        }
+        
+        // Initialize collapsed transcription if URL hash contains #transcription
+        if (window.location.hash === '#transcription') {
+            const transcriptionContent = document.getElementById('transcriptionContent');
+            if (transcriptionContent) {
+                transcriptionContent.classList.add('show');
+            }
+        }
+    });
+</script>
 {% endblock %}

@@ -202,6 +202,9 @@ msgstr "网址"
 msgid "Your browser does not support the audio element."
 msgstr "您的浏览器不支持音频元素。"
 
+msgid "Load Audio Player"
+msgstr "加载音频播放器"
+
 msgid "Transcription"
 msgstr "转录"
 

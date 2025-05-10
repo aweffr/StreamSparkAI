@@ -84,7 +84,7 @@
         {% if summary_html %}
         <div class="card mb-4">
             <div class="card-header">
-                <h4>{% blocktrans with summary_type=media.summary_type %}Latest Summary ({{ summary_type }}){% endblocktrans %}</h4>
+                <h4>{% blocktrans with summary_type=media.get_summary_type_display %}Latest Summary ({{ summary_type }}){% endblocktrans %}</h4>
                 {% if media.summary_date %}
                 <small class="text-muted">{% blocktrans with date=media.summary_date|date:"Y-m-d H:i" %}Generated on {{ date }}{% endblocktrans %}</small>
                 {% endif %}
@@ -106,7 +106,7 @@
                 {% for snapshot in snapshots %}
                 <a href="{{ snapshot.get_absolute_url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="mb-1">{% blocktrans with type=snapshot.summary_type %}{{ type }} Summary{% endblocktrans %}</h6>
+                        <h6 class="mb-1">{% blocktrans with type=snapshot.get_summary_type_display %}{{ type }} Summary{% endblocktrans %}</h6>
                         <small class="text-muted">{% blocktrans with model=snapshot.llm_model %}Model: {{ model }}{% endblocktrans %}</small>
                     </div>
                     <small>{{ snapshot.created_at|date:"Y-m-d H:i" }}</small>

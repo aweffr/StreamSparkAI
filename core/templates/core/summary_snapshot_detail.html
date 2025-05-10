@@ -1,7 +1,7 @@
 {% extends "core/base.html" %}
 {% load i18n %}
 
-{% block title %}{% blocktrans with type=snapshot.summary_type title=snapshot.audio_media.title %}Summary: {{ type }} - {{ title }} - StreamSparkAI{% endblocktrans %}{% endblock %}
+{% block title %}{% blocktrans with type=snapshot.get_summary_type_display title=snapshot.audio_media.title %}Summary: {{ type }} - {{ title }} - StreamSparkAI{% endblocktrans %}{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -10,12 +10,12 @@
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{% url 'core:audio_media_list' %}">{% trans "Audio Media" %}</a></li>
                 <li class="breadcrumb-item"><a href="{% url 'core:audio_media_detail' snapshot.audio_media.id %}">{{ snapshot.audio_media.title }}</a></li>
-                <li class="breadcrumb-item active">{% blocktrans with type=snapshot.summary_type %}{{ type }} Summary{% endblocktrans %}</li>
+                <li class="breadcrumb-item active">{% blocktrans with type=snapshot.get_summary_type_display %}{{ type }} Summary{% endblocktrans %}</li>
             </ol>
         </nav>
         
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>{% blocktrans with type=snapshot.summary_type %}{{ type }} Summary{% endblocktrans %}</h2>
+            <h2>{% blocktrans with type=snapshot.get_summary_type_display %}{{ type }} Summary{% endblocktrans %}</h2>
             <small class="text-muted">{% blocktrans with date=snapshot.created_at|date:"Y-m-d H:i" %}Generated: {{ date }}{% endblocktrans %}</small>
         </div>
         
@@ -29,7 +29,7 @@
                     <dd class="col-sm-9">{{ snapshot.audio_media.title }}</dd>
                     
                     <dt class="col-sm-3">{% trans "Summary Type" %}</dt>
-                    <dd class="col-sm-9">{{ snapshot.summary_type }}</dd>
+                    <dd class="col-sm-9">{{ snapshot.get_summary_type_display }}</dd>
                     
                     <dt class="col-sm-3">{% trans "LLM Provider" %}</dt>
                     <dd class="col-sm-9">{{ snapshot.llm_provider }}</dd>

@@ -2,6 +2,7 @@ import json
 import logging
 import requests
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 from enum import Enum, auto
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,21 @@ class SummaryType(Enum):
     MEETING_MINUTES = auto()  # 会议纪要格式
     INTERVIEW = auto()        # 采访总结
     QA = auto()               # 问答提取
+    
+    def get_display_name(self):
+        """Return a translatable display name for this summary type"""
+        display_names = {
+            SummaryType.GENERAL: _("General Summary"),
+            SummaryType.GENERAL_DETAIL: _("Detailed Summary"),
+            SummaryType.KEY_POINTS: _("Key Points"),
+            SummaryType.MEETING_MINUTES: _("Meeting Minutes"),
+            SummaryType.INTERVIEW: _("Interview Summary"),
+            SummaryType.QA: _("Q&A Extract"),
+        }
+        return display_names.get(self, str(self.name))
+    
+    def __str__(self):
+        return self.name
 
 def get_prompt_template(summary_type):
     """根据总结类型获取提示词模板"""

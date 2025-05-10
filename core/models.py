@@ -433,6 +433,14 @@ class AudioMedia(models.Model):
                 return str_display
         return None
 
+    def get_summary_type_display(self):
+        """获取总结类型的显示名称"""
+        try:
+            summary_type = getattr(SummaryType, self.summary_type)
+            return summary_type.get_display_name()
+        except (AttributeError, ValueError):
+            return self.summary_type
+
 
 class SummarySnapshot(models.Model):
     """
@@ -465,3 +473,11 @@ class SummarySnapshot(models.Model):
     def get_absolute_url(self):
         """返回查看该总结快照的URL"""
         return reverse('core:summary_snapshot_detail', args=[str(self.id)])
+
+    def get_summary_type_display(self):
+        """获取总结类型的显示名称"""
+        try:
+            summary_type = getattr(SummaryType, self.summary_type)
+            return summary_type.get_display_name()
+        except (AttributeError, ValueError):
+            return self.summary_type

@@ -237,3 +237,22 @@ msgstr "已开始后台处理 %(count)d 个文件。您可以安全离开此页�
 
 msgid "Summary: %(type)s - %(title)s - StreamSparkAI"
 msgstr "摘要：%(type)s - %(title)s - StreamSparkAI"
+
+# Summary types
+msgid "General Summary"
+msgstr "一般摘要"
+
+msgid "Detailed Summary"
+msgstr "详细摘要"
+
+msgid "Key Points"
+msgstr "关键点"
+
+msgid "Meeting Minutes"
+msgstr "会议纪要"
+
+msgid "Interview Summary"
+msgstr "采访总结"
+
+msgid "Q&A Extract"
+msgstr "问答提取"

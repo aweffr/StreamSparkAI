@@ -196,6 +196,9 @@ msgstr "媒体详情"
 msgid "Audio Player"
 msgstr "音频播放器"
 
+msgid "URL"
+msgstr "网址"
+
 msgid "Your browser does not support the audio element."
 msgstr "您的浏览器不支持音频元素。"
 

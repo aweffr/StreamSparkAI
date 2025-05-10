@@ -32,7 +32,13 @@
                     
                     {% if media.source %}
                     <dt class="col-sm-3">{% trans "Source" %}</dt>
-                    <dd class="col-sm-9">{{ media.source }}</dd>
+                    <dd class="col-sm-9">
+                        {% if media.source|slice:":4" == "http" %}
+                            <a href="{{ media.source }}" target="_blank">{{ media.source }} <i class="bi bi-box-arrow-up-right"></i></a>
+                        {% else %}
+                            {{ media.source }}
+                        {% endif %}
+                    </dd>
                     {% endif %}
                     
                     <dt class="col-sm-3">{% trans "Processing Status" %}</dt>

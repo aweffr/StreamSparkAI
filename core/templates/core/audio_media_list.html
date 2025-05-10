@@ -22,8 +22,16 @@
                         <p class="mb-1">{{ media.description|truncatechars:150 }}</p>
                     {% endif %}
                     <small>
-                        {% if media.source %}<span class="badge bg-secondary me-1">{{ media.source }}</span>{% endif %}
-                        {% if media.summary %}<span class="badge bg-success me-1">{% trans "Summarized" %}</span>{% endif %}
+                        {% if media.summary %}
+                            <span class="badge bg-success me-1">{% trans "Summarized" %}</span>
+                            {% if media.word_count > 0 %}
+                                <span class="badge bg-secondary me-1">
+                                    {% blocktrans with time=media.reading_time count=media.word_count %}
+                                    {{ time }} min read ({{ count }} words)
+                                    {% endblocktrans %}
+                                </span>
+                            {% endif %}
+                        {% endif %}
                         <span class="badge bg-info">
                             {% blocktrans count counter=media.summary_snapshots.count %}
                             {{ counter }} summary version
@@ -35,6 +43,67 @@
                 </a>
                 {% endfor %}
             </div>
+            
+            <!-- Pagination controls -->
+            {% if media_list.paginator.num_pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <!-- Previous button -->
+                    {% if media_list.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ media_list.previous_page_number }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link" aria-hidden="true">&laquo;</span>
+                        </li>
+                    {% endif %}
+                    
+                    <!-- First page -->
+                    {% if media_list.number > 3 %}
+                        <li class="page-item"><a class="page-link" href="?page=1">1</a></li>
+                        {% if media_list.number > 4 %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <!-- Pages around current page -->
+                    {% for page_num in media_list.paginator.page_range %}
+                        {% if page_num >= media_list.number|add:"-2" and page_num <= media_list.number|add:"2" %}
+                            {% if media_list.number == page_num %}
+                                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a></li>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <!-- Last page -->
+                    {% if media_list.number < media_list.paginator.num_pages|add:"-2" %}
+                        {% if media_list.number < media_list.paginator.num_pages|add:"-3" %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                        <li class="page-item"><a class="page-link" href="?page={{ media_list.paginator.num_pages }}">{{ media_list.paginator.num_pages }}</a></li>
+                    {% endif %}
+                    
+                    <!-- Next button -->
+                    {% if media_list.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ media_list.next_page_number }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link" aria-hidden="true">&raquo;</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
         {% else %}
             <p class="alert alert-info">{% trans "No processed audio files found." %}</p>
         {% endif %}

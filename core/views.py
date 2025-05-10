@@ -2,6 +2,46 @@ from django.shortcuts import render, get_object_or_404
 from django.http import Http404
 import markdown
 from .models import AudioMedia, SummarySnapshot
+import math  # Add this import for math.ceil
+import re
+import jieba  # Add jieba for Chinese word segmentation
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger  # Add this import
+
+def estimate_reading_time(text):
+    """
+    Estimate reading time based on word count.
+    Handles both Chinese and non-Chinese text appropriately.
+    
+    Args:
+        text (str): The text to estimate reading time for
+        
+    Returns:
+        tuple: (reading_time_minutes, word_count)
+    """
+    if not text:
+        return 0, 0
+    
+    # Check if text contains significant Chinese characters
+    chinese_pattern = re.compile(r'[\u4e00-\u9fff]')
+    chinese_char_count = len(chinese_pattern.findall(text))
+    
+    # If more than 10% of characters are Chinese, use Chinese segmentation
+    if chinese_char_count > len(text) * 0.1:
+        # Use jieba for Chinese word segmentation
+        words = list(jieba.cut(text))
+        word_count = len(words)
+        # Chinese reading speed is typically slower in words per minute
+        reading_speed = 200
+    else:
+        # For non-Chinese text, split by whitespace
+        words = text.split()
+        word_count = len(words)
+        reading_speed = 240
+    
+    # Calculate reading time in minutes, round up to nearest minute
+    reading_time = math.ceil(word_count / reading_speed)
+    
+    return reading_time, word_count
 
 def audio_media_list(request):
     """显示所有已处理的音频媒体文件列表"""
@@ -13,13 +53,32 @@ def audio_media_list(request):
     
     # 如果用户未登录，只显示公开媒体
     if not request.user.is_authenticated:
-        media_list = base_query.filter(is_private=False).order_by('-upload_date')
+        all_media = base_query.filter(is_private=False).order_by('-upload_date')
     else:
         # 已登录用户可以查看所有媒体
-        media_list = base_query.order_by('-upload_date')
+        all_media = base_query.order_by('-upload_date')
+    
+    # Pagination - 10 items per page
+    paginator = Paginator(all_media, 10)
+    page = request.GET.get('page')
+    
+    try:
+        paginated_media = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        paginated_media = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page of results
+        paginated_media = paginator.page(paginator.num_pages)
+    
+    # Enhance media items with reading time info
+    for media in paginated_media:
+        reading_time, word_count = estimate_reading_time(media.summary)
+        media.reading_time = reading_time
+        media.word_count = word_count
     
     return render(request, 'core/audio_media_list.html', {
-        'media_list': media_list,
+        'media_list': paginated_media,
     })
 
 def audio_media_detail(request, pk):
